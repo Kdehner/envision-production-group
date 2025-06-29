@@ -1,0 +1,110 @@
+{
+  "kind": "collectionType",
+  "collectionName": "equipment_items",
+  "info": {
+    "name": "Equipment Item",
+    "description": ""
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "richtext"
+    },
+    "dailyRate": {
+      "type": "decimal"
+    },
+    "sku": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "quantity": {
+      "type": "integer"
+    },
+    "availableQuantity": {
+      "type": "integer"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "Available",
+        "Rented",
+        "Maintenance",
+        "Damaged",
+        "Retired"
+      ],
+      "default": "Available"
+    },
+    "brand": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "mainImage": {
+      "model": "file",
+      "via": "related",
+      "allowedTypes": [
+        "images"
+      ],
+      "plugin": "upload",
+      "required": false,
+      "pluginOptions": {}
+    },
+    "gallery": {
+      "collection": "file",
+      "via": "related",
+      "allowedTypes": [
+        "images"
+      ],
+      "plugin": "upload",
+      "required": false,
+      "pluginOptions": {}
+    },
+    "weeklyRate": {
+      "type": "decimal"
+    },
+    "deposit": {
+      "type": "decimal"
+    },
+    "replacementCost": {
+      "type": "decimal"
+    },
+    "location": {
+      "type": "string"
+    },
+    "featured": {
+      "type": "boolean",
+      "default": false
+    },
+    "equipment_category": {
+      "via": "equipment_items",
+      "model": "equipment-category"
+    },
+    "specifications": {
+      "type": "json"
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "name"
+    },
+    "tags": {
+      "type": "json"
+    },
+    "serialNumber": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "richtext"
+    }
+  }
+}

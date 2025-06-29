@@ -1,0 +1,58 @@
+# Environment variables (CRITICAL - NEVER COMMIT)
+.env
+.env.local
+.env.production
+.env.development
+*.env
+
+# Strapi app data (contains sensitive database info)
+strapi-app/.tmp/
+strapi-app/build/
+strapi-app/.cache/
+strapi-app/exports/
+strapi-app/node_modules/
+strapi-app/package-lock.json
+
+# Database data
+postgres-data/
+
+# Caddy data (may contain certificates)
+caddy_data/
+caddy_config/
+
+# Logs
+logs/
+*.log
+/var/log/
+
+# Upload files (may contain client data)
+uploads/
+strapi-app/public/uploads/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.backup
+
+# Runtime files
+*.pid
+*.seed
+*.pid.lock

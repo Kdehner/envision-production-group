@@ -1,0 +1,72 @@
+services:
+  # Strapi CMS Backend
+  strapi:
+    image: strapi/strapi:latest
+    container_name: envision-strapi
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      DATABASE_CLIENT: postgres
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
+      APP_KEYS: ${APP_KEYS}
+      NODE_ENV: development
+      STRAPI_LOG_LEVEL: debug
+    volumes:
+      - ./strapi-app:/srv/app
+      - ./uploads:/srv/app/public/uploads
+    ports:
+      - "1337:1337"
+    depends_on:
+      - postgres
+    networks:
+      - envision-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: envision-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - envision-network
+
+  # Frontend (Next.js) - Development with hot reload
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: envision-frontend
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_STRAPI_URL: http://192.168.0.41:1337
+      WATCHPACK_POLLING: true  # Enable polling for Docker
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # Prevent overwriting node_modules
+      - /app/.next         # Prevent overwriting .next build cache
+    ports:
+      - "3000:3000"
+    depends_on:
+      - strapi
+    networks:
+      - envision-network
+
+volumes:
+  postgres-data:
+
+networks:
+  envision-network:
+    driver: bridge
