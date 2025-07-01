@@ -73,7 +73,7 @@ export default async function Home() {
                 href="/quote"
                 className="inline-block border-2 border-yellow-400 bg-yellow-400 text-gray-900 px-8 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition-colors"
               >
-                Request Quote
+                Get Expert Quote
               </Link>
             </div>
           </div>
@@ -186,7 +186,7 @@ export default async function Home() {
                       href={`/quote?equipment=${item.id}`}
                       className="block w-full text-center border border-blue-600 text-blue-400 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-colors"
                     >
-                      Request Quote
+                      Get Quote
                     </Link>
                   </div>
                 </div>

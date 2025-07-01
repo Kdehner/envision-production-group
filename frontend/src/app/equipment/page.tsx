@@ -64,7 +64,6 @@ export default function EquipmentCatalog() {
     // Category filter
     if (selectedCategory !== 'all') {
       filtered = filtered.filter((item) => {
-        // Handle both direct category relationship and category ID
         const categoryId = item.equipment_category?.id || item.category?.id;
         return categoryId?.toString() === selectedCategory;
       });
@@ -122,21 +121,58 @@ export default function EquipmentCatalog() {
       {/* Page Header */}
       <section className="bg-gray-800 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-4xl font-bold text-white mb-4">
-            Equipment Catalog
-          </h1>
-          <p className="text-xl text-gray-300">
-            Browse our complete inventory of professional event equipment
-          </p>
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-white mb-4">
+              Equipment Catalog
+            </h1>
+            <p className="text-xl text-gray-300 mb-6">
+              Browse our professional event equipment. Contact us for
+              personalized recommendations and custom quotes.
+            </p>
+          </div>
+
+          {/* Centered Quick Quote CTA */}
+          <div className="flex justify-center">
+            <div className="bg-gray-800 border-2 border-yellow-500 rounded-lg p-6 max-w-4xl w-full">
+              <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
+                <div className="flex items-center space-x-3 flex-1">
+                  <span className="text-yellow-400 text-2xl">💡</span>
+                  <div className="text-center md:text-left">
+                    <h3 className="text-yellow-400 font-semibold mb-2">
+                      Need help choosing equipment?
+                    </h3>
+                    <p className="text-gray-300 text-sm">
+                      Our equipment specialists will help you find the perfect
+                      solution for your event.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                  <Link
+                    href="/quote"
+                    className="inline-block bg-yellow-500 text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-400 transition-colors text-center"
+                  >
+                    Get Expert Quote
+                  </Link>
+                  <a
+                    href={`tel:${brandConfig.contact.phone.replace(/\D/g, '')}`}
+                    className="inline-block border-2 border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-gray-900 transition-colors text-center"
+                  >
+                    Call Now
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Filters Section */}
-      <section className="bg-gray-800 border-b border-gray-700 py-6">
+      {/* Sticky Filters Section */}
+      <section className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700 py-6 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
-            <div>
+            <div className="md:col-span-2">
               <label
                 htmlFor="search"
                 className="block text-sm font-medium text-gray-300 mb-2"
@@ -198,9 +234,25 @@ export default function EquipmentCatalog() {
             </div>
           </div>
 
-          {/* Results Count */}
-          <div className="mt-4 text-gray-300">
-            Showing {filteredEquipment.length} of {equipment.length} items
+          {/* Results Count and Clear Filters */}
+          <div className="flex justify-between items-center mt-4">
+            <div className="text-gray-300">
+              Showing {filteredEquipment.length} of {equipment.length} items
+            </div>
+            {(searchTerm ||
+              selectedCategory !== 'all' ||
+              statusFilter !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedCategory('all');
+                  setStatusFilter('all');
+                }}
+                className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+              >
+                Clear All Filters
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -213,10 +265,16 @@ export default function EquipmentCatalog() {
               <div className="text-gray-400 text-xl mb-4">
                 No equipment found
               </div>
-              <p className="text-gray-500">
+              <p className="text-gray-500 mb-6">
                 Try adjusting your search terms or filters to find what you're
                 looking for.
               </p>
+              <Link
+                href="/quote"
+                className="inline-block bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Tell Us What You Need
+              </Link>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -337,9 +395,9 @@ export default function EquipmentCatalog() {
                       </Link>
                       <Link
                         href={`/quote?equipment=${item.id}`}
-                        className="block w-full text-center border border-blue-600 text-blue-400 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition-colors"
+                        className="block w-full text-center border border-yellow-500 text-yellow-400 py-2 rounded-lg hover:bg-yellow-500 hover:text-gray-900 transition-colors"
                       >
-                        Request Quote
+                        Get Quote
                       </Link>
                     </div>
                   </div>
@@ -347,6 +405,33 @@ export default function EquipmentCatalog() {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Contact CTA Section */}
+      <section className="bg-gray-800 py-12">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Ready to Plan Your Event?
+          </h2>
+          <p className="text-xl text-gray-300 mb-8">
+            Our equipment specialists are ready to help you create the perfect
+            setup for your event.
+          </p>
+          <div className="space-x-4">
+            <Link
+              href="/quote"
+              className="inline-block bg-yellow-500 text-gray-900 py-3 px-8 rounded-lg font-semibold hover:bg-yellow-400 transition-colors"
+            >
+              Start Your Quote
+            </Link>
+            <a
+              href={`tel:${brandConfig.contact.phone.replace(/\D/g, '')}`}
+              className="inline-block border-2 border-blue-600 text-blue-400 py-3 px-8 rounded-lg font-semibold hover:bg-blue-600 hover:text-white transition-colors"
+            >
+              Call {brandUtils.formatPhone()}
+            </a>
+          </div>
         </div>
       </section>
 
