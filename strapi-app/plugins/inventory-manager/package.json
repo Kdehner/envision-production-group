@@ -1,0 +1,17 @@
+{
+  "name": "strapi-plugin-inventory-manager",
+  "version": "1.0.0",
+  "description": "Inventory management plugin for EPG equipment rental",
+  "strapi": {
+    "name": "inventory-manager",
+    "icon": "warehouse",
+    "description": "Manage equipment inventory, bookings, and repairs"
+  },
+  "dependencies": {
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "styled-components": "^5.3.11"
+  },
+  "author": "EPG Development Team",
+  "license": "MIT"
+}

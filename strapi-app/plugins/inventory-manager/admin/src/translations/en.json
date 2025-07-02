@@ -1,0 +1,10 @@
+{
+  "inventory-manager.plugin.name": "Inventory Manager",
+  "inventory-manager.plugin.description": "Manage equipment inventory, bookings, and repairs",
+  "inventory-manager.dashboard.name": "Dashboard",
+  "inventory-manager.scan.name": "Quick Scan",
+  "inventory-manager.equipment.status.available": "Available",
+  "inventory-manager.equipment.status.rented": "Rented",
+  "inventory-manager.equipment.status.maintenance": "Maintenance",
+  "inventory-manager.equipment.status.damaged": "Damaged"
+}
