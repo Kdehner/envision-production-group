@@ -1,3 +1,4 @@
+// admin/src/index.js - Exactly following Strapi v3 docs
 import pluginPkg from "../../package.json";
 import pluginId from "./pluginId";
 import App from "./containers/App";
@@ -6,54 +7,58 @@ import lifecycles from "./lifecycles";
 import trads from "./translations";
 
 export default (strapi) => {
+  console.log("🔧 Registering plugin:", pluginId);
+
+  const pluginDescription =
+    pluginPkg.strapi.description || pluginPkg.description;
+  const icon = pluginPkg.strapi.icon;
+  const name = pluginPkg.strapi.name;
+
   const plugin = {
     blockerComponent: null,
     blockerComponentProps: {},
-    description: pluginPkg.strapi.description,
-    icon: pluginPkg.strapi.icon,
+    description: pluginDescription,
+    icon,
     id: pluginId,
-    initializer: Initializer,
+    initializer: Initializer, // This must be the component, not null
     injectedComponents: [],
-    isReady: false,
     isRequired: pluginPkg.strapi.required || false,
     layout: null,
     lifecycles,
     mainComponent: App,
-    name: pluginPkg.strapi.name,
+    name,
     preventComponentRendering: false,
     trads,
     menu: {
+      // Set a link into the PLUGINS section
       pluginsSectionLinks: [
         {
-          destination: "/plugins/inventory-manager",
-          icon: "warehouse",
+          destination: `/plugins/${pluginId}`,
+          icon,
           label: {
-            id: "inventory-manager.plugin.name",
+            id: `${pluginId}.plugin.name`,
             defaultMessage: "Inventory Manager",
           },
-          name: "inventory-manager",
-        },
-        {
-          destination: "/plugins/inventory-manager/dashboard",
-          icon: "dashboard",
-          label: {
-            id: "inventory-manager.dashboard.name",
-            defaultMessage: "Dashboard",
-          },
-          name: "inventory-dashboard",
-        },
-        {
-          destination: "/plugins/inventory-manager/quick-scan",
-          icon: "qrcode",
-          label: {
-            id: "inventory-manager.scan.name",
-            defaultMessage: "Quick Scan",
-          },
-          name: "quick-scan",
+          name,
+          // Permissions based on docs example
+          permissions: [
+            {
+              action: "plugins::inventory-manager.read",
+              subject: null,
+            },
+          ],
         },
       ],
     },
   };
+
+  console.log("🔧 Plugin config created:", {
+    id: plugin.id,
+    name: plugin.name,
+    hasInitializer: !!plugin.initializer,
+    hasMainComponent: !!plugin.mainComponent,
+    menuLinks: plugin.menu.pluginsSectionLinks.length,
+  });
 
   return strapi.registerPlugin(plugin);
 };
