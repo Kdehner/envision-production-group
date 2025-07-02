@@ -6,6 +6,7 @@ import {
   getStrapiImageUrl,
 } from '@/lib/strapi';
 import { brandConfig, brandUtils } from '@/lib/config';
+import { PageLayout, HeroSection } from '@/components';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -16,69 +17,21 @@ export default async function Home() {
   ]);
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      {/* Header */}
-      <header className="bg-gray-800 shadow-sm border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-white">
-                {brandConfig.company.name}
-              </h1>
-            </div>
-            <nav className="flex space-x-8">
-              {brandConfig.navigation.main.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={
-                    item.href === '/'
-                      ? 'text-yellow-400 font-semibold'
-                      : 'text-gray-300 hover:text-white transition-colors'
-                  }
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </nav>
-          </div>
-        </div>
-      </header>
-
+    <PageLayout activeSection="home" showBreadcrumbs={false}>
       {/* Hero Section */}
-      <section
-        className={`text-white relative ${brandUtils.getHeroBackgroundClasses()}`}
-      >
-        {/* Overlay for text readability */}
-        <div
-          className={`absolute inset-0 ${brandUtils.getOverlayClasses()}`}
-        ></div>
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center">
-            <h2 className="text-4xl font-bold mb-6">
-              Professional Event Equipment Rentals
-            </h2>
-            <p className="text-xl mb-8 max-w-3xl mx-auto">
-              {brandConfig.company.description}
-            </p>
-            <div className="flex justify-center space-x-4">
-              <Link
-                href="/equipment"
-                className="inline-block bg-white text-gray-800 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-              >
-                Browse Equipment
-              </Link>
-              <Link
-                href="/quote"
-                className="inline-block border-2 border-yellow-400 bg-yellow-400 text-gray-900 px-8 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition-colors"
-              >
-                Request Quote
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroSection
+        title="Professional Event Equipment Rentals"
+        subtitle={brandConfig.company.description}
+        primaryButton={{
+          text: 'Browse Equipment',
+          href: '/equipment',
+        }}
+        secondaryButton={{
+          text: 'Request Quote',
+          href: '/quote',
+        }}
+        backgroundImage="/images/hero-bg.jpg"
+      />
 
       {/* Equipment Categories */}
       <section className="py-16">
@@ -206,22 +159,6 @@ export default async function Home() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-black text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h4 className="text-2xl font-bold mb-4">
-              {brandConfig.company.name}
-            </h4>
-            <p className="text-gray-300 mb-6">{brandConfig.company.tagline}</p>
-            <div className="flex justify-center space-x-8">
-              <span>📧 {brandConfig.contact.email}</span>
-              <span>📞 {brandUtils.formatPhone()}</span>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </PageLayout>
   );
 }

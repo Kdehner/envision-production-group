@@ -22,18 +22,8 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Development configuration for Docker hot reloading
-  ...(process.env.NODE_ENV === 'development' && {
-    webpack: (config, { dev }) => {
-      if (dev) {
-        config.watchOptions = {
-          poll: 1000,
-          aggregateTimeout: 300,
-        };
-      }
-      return config;
-    },
-  }),
+  // Remove webpack configuration when using Turbopack
+  // Turbopack handles file watching automatically in Docker
 };
 
 export default nextConfig;
