@@ -1,4 +1,4 @@
-// lib/config.ts
+// frontend/src/lib/config.ts
 export const brandConfig = {
   // Company Information
   company: {
@@ -62,71 +62,29 @@ export const brandConfig = {
         400: '#fbbf24', // Logo gold
         500: '#f59e0b', // Main brand gold
         600: '#d97706', // Darker gold
-        700: '#b45309', //
-        800: '#92400e', //
-        900: '#78350f', // Darkest gold
+        700: '#b45309',
+        800: '#92400e',
+        900: '#78350f',
       },
-
-      // Secondary Colors (grays from your logo)
+      // Secondary Brand Colors
       secondary: {
-        50: '#f9fafb', // Very light gray
-        100: '#f3f4f6', // Light gray
-        200: '#e5e7eb', //
-        300: '#d1d5db', //
-        400: '#9ca3af', // Logo light gray
-        500: '#6b7280', // Logo medium gray
-        600: '#4b5563', // Logo dark gray
-        700: '#374151', //
-        800: '#1f2937', //
-        900: '#111827', // Darkest gray
-      },
-
-      // Accent Colors (to complement gold/gray)
-      accent: {
-        blue: '#1e40af', // Professional blue
-        teal: '#0d9488', // Modern teal
-        purple: '#7c3aed', // Creative purple
-        green: '#059669', // Success green
-        red: '#dc2626', // Alert red
-      },
-
-      // Status Colors
-      success: {
-        light: '#d1fae5',
-        main: '#10b981', // Emerald green
-        dark: '#047857',
-      },
-      warning: {
-        light: '#fef3c7',
-        main: '#f59e0b', // Your brand gold
-        dark: '#d97706',
-      },
-      error: {
-        light: '#fee2e2',
-        main: '#ef4444',
-        dark: '#dc2626',
-      },
-
-      // Dark Theme Colors (matching your logo background)
-      dark: {
-        bg: {
-          primary: '#0f0f0f', // Very dark (like logo background)
-          secondary: '#1a1a1a', // Dark gray
-          tertiary: '#2a2a2a', // Medium dark gray
-        },
-        text: {
-          primary: '#ffffff', // White text
-          secondary: '#d1d5db', // Light gray text
-          muted: '#9ca3af', // Muted gray text
-          gold: '#fbbf24', // Your logo gold for accents
-        },
+        50: '#eff6ff',
+        100: '#dbeafe',
+        200: '#bfdbfe',
+        300: '#93c5fd',
+        400: '#60a5fa',
+        500: '#3b82f6', // Main brand blue
+        600: '#2563eb',
+        700: '#1d4ed8',
+        800: '#1e40af',
+        900: '#1e3a8a',
       },
     },
   },
 
   // Theme Settings
   theme: {
-    defaultMode: 'dark', // "light" | "dark" | "system"
+    mode: 'dark', // "light" | "dark" | "system"
 
     // Background Options
     backgrounds: {
@@ -153,14 +111,15 @@ export const brandConfig = {
 
   // Business Settings
   business: {
-    // Equipment Categories Default Colors (complementing your brand)
+    // Equipment Categories Default Colors (complementing your brand) - REMOVED VIDEO
     categoryColors: {
       lighting: '#fbbf24', // Your logo gold
       audio: '#1e40af', // Professional blue
-      video: '#0d9488', // Modern teal
       power: '#dc2626', // Alert red
       staging: '#7c3aed', // Creative purple
       effects: '#f59e0b', // Warm gold variant
+      'power & distribution': '#dc2626', // Alternative name for power
+      'special effects': '#f59e0b', // Alternative name for effects
     },
 
     // Rental Terms
@@ -179,19 +138,23 @@ export const brandConfig = {
     },
   },
 
-  // SEO & Meta
+  // SEO & Meta - UPDATED TO REMOVE VIDEO
   seo: {
     defaultTitle:
       'Envision Production Group - Professional Event Equipment Rentals',
     defaultDescription:
-      'Professional lighting, audio, video, and staging equipment rentals in Denver, Colorado. Custom quotes for concerts, corporate events, weddings, and productions.',
+      'Professional lighting, audio, and staging equipment rentals in Denver, Colorado. Custom quotes for concerts, corporate events, weddings, and productions.',
     keywords: [
       'event equipment rental',
       'lighting rental',
       'audio rental',
+      'staging rental',
       'Denver',
       'Colorado',
       'production equipment',
+      'event production',
+      'professional lighting',
+      'sound equipment',
     ],
     ogImage: '/images/og-image.jpg',
   },

@@ -11,17 +11,17 @@ export {
 } from './layout/Breadcrumb';
 export { default as PageLayout, HeroSection } from './layout/PageLayout';
 
-// CTA Components
-export {
-  CTASection,
-  EquipmentCTA,
-  ServicesCTA,
-  ContactCTA,
-  AboutCTA,
-  HelpCTA,
-  ConsultationCTA,
-  DJServicesCTA,
-} from './shared/CTAs';
-
 // Types (if you want to export them)
 export type { BreadcrumbItem } from './layout/Breadcrumb';
+
+// Note: CTA Components are commented out until they're fully implemented
+// export {
+//   CTASection,
+//   EquipmentCTA,
+//   ServicesCTA,
+//   ContactCTA,
+//   AboutCTA,
+//   HelpCTA,
+//   ConsultationCTA,
+//   DJServicesCTA,
+// } from './shared/CTAs';

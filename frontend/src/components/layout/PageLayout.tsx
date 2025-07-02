@@ -1,4 +1,5 @@
 // frontend/src/components/layout/PageLayout.tsx
+import Link from 'next/link';
 import Header from './Header';
 import Breadcrumb, { BreadcrumbItem } from './Breadcrumb';
 import Footer from './Footer';
@@ -104,6 +105,3 @@ export function HeroSection({
     </section>
   );
 }
-
-// Import Link for the HeroSection
-import Link from 'next/link';

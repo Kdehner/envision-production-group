@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { strapiApi, EquipmentItem, getStrapiImageUrl } from '@/lib/strapi';
 import { brandConfig, brandUtils } from '@/lib/config';
+import { PageLayout, BREADCRUMBS } from '@/components';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -186,99 +187,65 @@ export default function ContactForQuotePage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading contact form...</div>
-      </div>
-    );
-  }
-
+  // Success page
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-900">
-        {/* Header */}
-        <header className="bg-gray-800 shadow-sm border-b border-gray-700">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center">
-                <Link
-                  href="/"
-                  className="text-2xl font-bold text-white hover:text-blue-400"
-                >
-                  {brandConfig.company.name}
-                </Link>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Success Message */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      <PageLayout activeSection="quote" breadcrumbs={BREADCRUMBS.quote}>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
-            <div className="text-6xl mb-6">🎯</div>
-            <h1 className="text-4xl font-bold text-white mb-4">
-              We'll Be In Touch Soon!
-            </h1>
-            <p className="text-xl text-gray-300 mb-8">
-              Thank you for reaching out to {brandConfig.company.shortName}! Our
-              equipment specialists will contact you to discuss your needs and
-              create the perfect solution.
-            </p>
+            <div className="mb-8">
+              <div className="text-6xl mb-4">✅</div>
+              <h1 className="text-4xl font-bold text-white mb-4">
+                Quote Request Submitted!
+              </h1>
+              <p className="text-xl text-gray-300 mb-8">
+                Thank you for your interest in our equipment and services. We'll
+                be in touch soon to discuss your project in detail.
+              </p>
+            </div>
 
-            <div className="bg-gray-800 rounded-lg p-8 mb-8 border border-gray-700">
-              <h3 className="text-xl font-semibold text-white mb-6">
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
+              <h2 className="text-2xl font-semibold text-white mb-4">
                 What happens next?
-              </h3>
+              </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-                <div className="text-center">
-                  <div className="text-3xl mb-3">📞</div>
-                  <h4 className="text-white font-semibold mb-2">
-                    We'll Contact You
-                  </h4>
+                <div>
+                  <div className="text-yellow-400 text-2xl mb-2">📞</div>
+                  <h3 className="font-semibold text-white mb-2">
+                    Within 2 Hours
+                  </h3>
                   <p className="text-gray-300 text-sm">
-                    {formData.urgency === 'asap'
-                      ? 'Within 2 hours'
-                      : formData.urgency === 'this-week'
-                      ? 'Within 24 hours'
-                      : 'Within 24-48 hours'}
+                    One of our equipment specialists will contact you to discuss
+                    your needs
                   </p>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl mb-3">💡</div>
-                  <h4 className="text-white font-semibold mb-2">
-                    Discuss Your Needs
-                  </h4>
+                <div>
+                  <div className="text-yellow-400 text-2xl mb-2">📋</div>
+                  <h3 className="font-semibold text-white mb-2">
+                    Consultation
+                  </h3>
                   <p className="text-gray-300 text-sm">
-                    We'll understand your vision and recommend the best
-                    equipment solutions
+                    We'll create a detailed equipment list and provide
+                    transparent pricing
                   </p>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl mb-3">📋</div>
-                  <h4 className="text-white font-semibold mb-2">
-                    Custom Quote
-                  </h4>
+                <div>
+                  <div className="text-yellow-400 text-2xl mb-2">✨</div>
+                  <h3 className="font-semibold text-white mb-2">Your Event</h3>
                   <p className="text-gray-300 text-sm">
-                    Receive a detailed quote tailored to your specific
-                    requirements
+                    Professional setup and support to make your event
+                    exceptional
                   </p>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-4 mb-8">
-              <p className="text-gray-300">
-                📧 We'll reach out via:{' '}
-                <strong className="text-white">
-                  {formData.preferredContact === 'email'
-                    ? formData.email
-                    : formData.phone}
-                </strong>
-              </p>
-              <p className="text-gray-300">
-                🕒 Timeline:{' '}
-                <strong className="text-white">
+              <div className="mt-6 pt-6 border-t border-gray-600">
+                <p className="text-gray-300">
+                  <strong className="text-white">Project:</strong>{' '}
+                  {formData.projectName}
+                </p>
+                <p className="text-gray-300">
+                  <strong className="text-white">Timeline:</strong>{' '}
                   {formData.urgency === 'asap'
                     ? 'ASAP'
                     : formData.urgency === 'this-week'
@@ -286,14 +253,14 @@ export default function ContactForQuotePage() {
                     : formData.urgency === 'next-week'
                     ? 'Next week'
                     : 'Flexible timing'}
-                </strong>
-              </p>
-              <p className="text-gray-300">
-                ⚡ Questions? Call us at:{' '}
-                <strong className="text-white">
-                  {brandUtils.formatPhone()}
-                </strong>
-              </p>
+                </p>
+                <p className="text-gray-300">
+                  ⚡ Questions? Call us at:{' '}
+                  <strong className="text-white">
+                    {brandUtils.formatPhone()}
+                  </strong>
+                </p>
+              </div>
             </div>
 
             <div className="space-x-4">
@@ -312,52 +279,12 @@ export default function ContactForQuotePage() {
             </div>
           </div>
         </div>
-      </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      {/* Header */}
-      <header className="bg-gray-800 shadow-sm border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link
-                href="/"
-                className="text-2xl font-bold text-white hover:text-blue-400"
-              >
-                {brandConfig.company.name}
-              </Link>
-            </div>
-            <nav className="flex space-x-8">
-              {brandConfig.navigation.main.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="text-gray-300 hover:text-blue-400"
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </nav>
-          </div>
-        </div>
-      </header>
-
-      {/* Breadcrumb */}
-      <nav className="bg-gray-800 border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center space-x-2 text-sm">
-            <Link href="/" className="text-gray-400 hover:text-white">
-              Home
-            </Link>
-            <span className="text-gray-500">/</span>
-            <span className="text-white">Contact for Quote</span>
-          </div>
-        </div>
-      </nav>
-
+    <PageLayout activeSection="quote" breadcrumbs={BREADCRUMBS.quote}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Page Header */}
         <div className="mb-8">
@@ -423,7 +350,7 @@ export default function ContactForQuotePage() {
                   className={`w-full px-3 py-2 bg-gray-700 border rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.contactName ? 'border-red-500' : 'border-gray-600'
                   }`}
-                  placeholder="Your full name"
+                  placeholder="John Smith"
                 />
                 {errors.contactName && (
                   <p className="text-red-400 text-sm mt-1">
@@ -443,7 +370,7 @@ export default function ContactForQuotePage() {
                     handleInputChange('companyName', e.target.value)
                   }
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Company name (optional)"
+                  placeholder="ABC Company"
                 />
               </div>
 
@@ -458,7 +385,7 @@ export default function ContactForQuotePage() {
                   className={`w-full px-3 py-2 bg-gray-700 border rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.email ? 'border-red-500' : 'border-gray-600'
                   }`}
-                  placeholder="your@email.com"
+                  placeholder="john@example.com"
                 />
                 {errors.email && (
                   <p className="text-red-400 text-sm mt-1">{errors.email}</p>
@@ -482,62 +409,18 @@ export default function ContactForQuotePage() {
                   <p className="text-red-400 text-sm mt-1">{errors.phone}</p>
                 )}
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  How would you prefer we contact you?
-                </label>
-                <select
-                  value={formData.preferredContact}
-                  onChange={(e) =>
-                    handleInputChange(
-                      'preferredContact',
-                      e.target.value as 'email' | 'phone'
-                    )
-                  }
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="email">Email</option>
-                  <option value="phone">Phone call</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  How urgent is this request?
-                </label>
-                <select
-                  value={formData.urgency}
-                  onChange={(e) =>
-                    handleInputChange(
-                      'urgency',
-                      e.target.value as
-                        | 'asap'
-                        | 'this-week'
-                        | 'next-week'
-                        | 'flexible'
-                    )
-                  }
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="flexible">Flexible timing</option>
-                  <option value="next-week">Need quote next week</option>
-                  <option value="this-week">Need quote this week</option>
-                  <option value="asap">Need quote ASAP</option>
-                </select>
-              </div>
             </div>
           </section>
 
-          {/* Project Overview */}
+          {/* Project Information */}
           <section className="bg-gray-800 p-6 rounded-lg border border-gray-700">
             <h2 className="text-2xl font-semibold text-white mb-6">
-              Tell Us About Your Project
+              Event Details
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Project/Event Name *
+                  Event/Project Name *
                 </label>
                 <input
                   type="text"
@@ -548,7 +431,7 @@ export default function ContactForQuotePage() {
                   className={`w-full px-3 py-2 bg-gray-700 border rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.projectName ? 'border-red-500' : 'border-gray-600'
                   }`}
-                  placeholder="Annual Conference, Wedding, Concert, etc."
+                  placeholder="Summer Corporate Gala"
                 />
                 {errors.projectName && (
                   <p className="text-red-400 text-sm mt-1">
@@ -559,7 +442,7 @@ export default function ContactForQuotePage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Type of Event
+                  Event Type
                 </label>
                 <select
                   value={formData.projectType}
@@ -568,20 +451,14 @@ export default function ContactForQuotePage() {
                   }
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="">Select event type</option>
-                  <option value="Corporate Event">Corporate Event</option>
-                  <option value="Wedding">Wedding</option>
-                  <option value="Conference">Conference</option>
-                  <option value="Concert/Festival">Concert/Festival</option>
-                  <option value="Trade Show">Trade Show</option>
-                  <option value="Private Party">Private Party</option>
-                  <option value="Theater/Performance">
-                    Theater/Performance
-                  </option>
-                  <option value="Film/Video Production">
-                    Film/Video Production
-                  </option>
-                  <option value="Other">Other</option>
+                  <option value="">Select event type...</option>
+                  <option value="corporate">Corporate Event</option>
+                  <option value="wedding">Wedding</option>
+                  <option value="concert">Concert/Performance</option>
+                  <option value="party">Private Party</option>
+                  <option value="gala">Gala/Fundraiser</option>
+                  <option value="festival">Festival/Outdoor Event</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
 
@@ -601,7 +478,7 @@ export default function ContactForQuotePage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Expected Attendees
+                  Estimated Attendees
                 </label>
                 <select
                   value={formData.estimatedAttendees}
@@ -610,17 +487,17 @@ export default function ContactForQuotePage() {
                   }
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="">Select size</option>
-                  <option value="Under 50">Under 50 people</option>
-                  <option value="50-100">50-100 people</option>
-                  <option value="100-250">100-250 people</option>
-                  <option value="250-500">250-500 people</option>
-                  <option value="500-1000">500-1000 people</option>
-                  <option value="Over 1000">Over 1000 people</option>
+                  <option value="">Select attendance...</option>
+                  <option value="1-25">1-25 people</option>
+                  <option value="26-50">26-50 people</option>
+                  <option value="51-100">51-100 people</option>
+                  <option value="101-250">101-250 people</option>
+                  <option value="251-500">251-500 people</option>
+                  <option value="500+">500+ people</option>
                 </select>
               </div>
 
-              <div className="md:col-span-2">
+              <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Venue/Location
                 </label>
@@ -629,51 +506,31 @@ export default function ContactForQuotePage() {
                   value={formData.venue}
                   onChange={(e) => handleInputChange('venue', e.target.value)}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Convention center, hotel ballroom, outdoor venue, etc."
+                  placeholder="Denver Convention Center"
                 />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Estimated Budget Range
-                </label>
-                <select
-                  value={formData.budget}
-                  onChange={(e) => handleInputChange('budget', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select budget range (optional)</option>
-                  <option value="Under $1,000">Under $1,000</option>
-                  <option value="$1,000 - $2,500">$1,000 - $2,500</option>
-                  <option value="$2,500 - $5,000">$2,500 - $5,000</option>
-                  <option value="$5,000 - $10,000">$5,000 - $10,000</option>
-                  <option value="$10,000 - $25,000">$10,000 - $25,000</option>
-                  <option value="Over $25,000">Over $25,000</option>
-                  <option value="Prefer to discuss">Prefer to discuss</option>
-                </select>
               </div>
             </div>
           </section>
 
-          {/* Equipment Interest - Simplified */}
+          {/* Equipment Interest */}
           <section className="bg-gray-800 p-6 rounded-lg border border-gray-700">
             <h2 className="text-2xl font-semibold text-white mb-6">
-              Tell Us About Your Equipment Needs
+              Equipment Needs
             </h2>
 
-            {/* Pre-selected Equipment (if coming from equipment page) */}
+            {/* Selected Equipment Display */}
             {formData.interestedEquipment.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white mb-4">
-                  Equipment You're Inquiring About
+                <h3 className="text-lg font-medium text-white mb-3">
+                  Selected Equipment ({formData.interestedEquipment.length})
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
                   {formData.interestedEquipment.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between bg-gray-700 p-4 rounded-lg"
+                      className="flex items-center justify-between bg-gray-700 p-3 rounded-lg"
                     >
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gray-600 rounded overflow-hidden">
                           {item.mainImage ? (
                             <Image
@@ -708,141 +565,149 @@ export default function ContactForQuotePage() {
                     </div>
                   ))}
                 </div>
-
-                {/* Add separator */}
                 <div className="border-t border-gray-600 my-6"></div>
               </div>
             )}
 
-            {/* Equipment Needs Description */}
-            <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                What type of equipment are you looking for?
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                {[
+                  'Audio/Sound',
+                  'Lighting',
+                  'Staging',
+                  'Power/Electrical',
+                  'Special Effects',
+                  'Other',
+                ].map((category) => (
+                  <label
+                    key={category}
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded focus:ring-yellow-500 focus:ring-2"
+                      onChange={(e) => {
+                        const current = formData.equipmentNeeds;
+                        if (e.target.checked) {
+                          handleInputChange(
+                            'equipmentNeeds',
+                            current ? `${current}, ${category}` : category
+                          );
+                        } else {
+                          handleInputChange(
+                            'equipmentNeeds',
+                            current
+                              ?.split(', ')
+                              .filter((item) => item !== category)
+                              .join(', ') || ''
+                          );
+                        }
+                      }}
+                    />
+                    <span className="text-gray-300 text-sm">{category}</span>
+                  </label>
+                ))}
+              </div>
+
+              <textarea
+                value={formData.equipmentNeeds}
+                onChange={(e) =>
+                  handleInputChange('equipmentNeeds', e.target.value)
+                }
+                rows={3}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Describe your equipment needs or any specific requirements..."
+              />
+            </div>
+          </section>
+
+          {/* Additional Information */}
+          <section className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+            <h2 className="text-2xl font-semibold text-white mb-6">
+              Additional Details
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  What type of equipment are you looking for? *
+                  Budget Range
                 </label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                  {[
-                    'Audio/Sound',
-                    'Lighting',
-                    'Video/Screens',
-                    'Staging',
-                    'Power/Electrical',
-                    'Special Effects',
-                    'Other',
-                  ].map((category) => (
-                    <label
-                      key={category}
-                      className="flex items-center space-x-2 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded focus:ring-yellow-500 focus:ring-2"
-                        onChange={(e) => {
-                          const current = formData.equipmentNeeds;
-                          if (e.target.checked) {
-                            handleInputChange(
-                              'equipmentNeeds',
-                              current ? `${current}, ${category}` : category
-                            );
-                          } else {
-                            handleInputChange(
-                              'equipmentNeeds',
-                              current
-                                .replace(
-                                  new RegExp(`${category},?\\s*`, 'g'),
-                                  ''
-                                )
-                                .replace(/,\s*$/, '')
-                            );
-                          }
-                        }}
-                      />
-                      <span className="text-gray-300 text-sm">{category}</span>
-                    </label>
-                  ))}
-                </div>
+                <select
+                  value={formData.budget}
+                  onChange={(e) => handleInputChange('budget', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Select budget range...</option>
+                  <option value="under-1000">Under $1,000</option>
+                  <option value="1000-2500">$1,000 - $2,500</option>
+                  <option value="2500-5000">$2,500 - $5,000</option>
+                  <option value="5000-10000">$5,000 - $10,000</option>
+                  <option value="10000+">$10,000+</option>
+                  <option value="discuss">Let's discuss</option>
+                </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Describe your equipment needs and vision for the event
+                  Timeline
+                </label>
+                <select
+                  value={formData.urgency}
+                  onChange={(e) =>
+                    handleInputChange(
+                      'urgency',
+                      e.target.value as
+                        | 'asap'
+                        | 'this-week'
+                        | 'next-week'
+                        | 'flexible'
+                    )
+                  }
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="flexible">Flexible timing</option>
+                  <option value="next-week">Next week</option>
+                  <option value="this-week">This week</option>
+                  <option value="asap">ASAP</option>
+                </select>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Additional Information
                 </label>
                 <textarea
-                  value={formData.equipmentNeeds}
+                  value={formData.additionalInfo}
                   onChange={(e) =>
-                    handleInputChange('equipmentNeeds', e.target.value)
+                    handleInputChange('additionalInfo', e.target.value)
                   }
-                  rows={5}
+                  rows={4}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Tell us about your audio, lighting, staging, or other equipment needs. What's your vision for the event? Any specific requirements or challenges we should know about?"
+                  placeholder="Any additional details about your event, special requirements, or questions..."
                 />
               </div>
             </div>
           </section>
 
           {/* Submit Button */}
-          <div className="flex justify-between items-center">
-            <Link
-              href="/equipment"
-              className="px-6 py-3 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-600 hover:text-white transition-colors"
-            >
-              ← Browse Equipment First
-            </Link>
+          <div className="text-center">
             <button
               type="submit"
               disabled={submitting}
-              className={`px-8 py-3 rounded-lg font-semibold transition-colors ${
-                submitting
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                  : 'bg-yellow-500 text-gray-900 hover:bg-yellow-400'
+              className={`bg-yellow-500 text-gray-900 py-3 px-8 rounded-lg font-semibold hover:bg-yellow-400 transition-colors ${
+                submitting ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              {submitting ? 'Submitting...' : 'Contact Me About This Project'}
+              {submitting ? 'Submitting...' : 'Submit Quote Request'}
             </button>
-          </div>
-
-          {/* Contact Alternative */}
-          <div className="bg-blue-900 bg-opacity-30 border border-blue-700 rounded-lg p-6 text-center">
-            <h3 className="text-blue-300 font-semibold mb-3">
-              Prefer to Talk Directly?
-            </h3>
-            <p className="text-gray-300 mb-4">
-              Sometimes it's easier to discuss your needs over the phone. We're
-              here to help!
+            <p className="text-gray-400 text-sm mt-3">
+              We'll respond within 2 hours during business hours
             </p>
-            <div className="space-x-4">
-              <a
-                href={`tel:${brandConfig.contact.phone.replace(/\D/g, '')}`}
-                className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-              >
-                Call {brandUtils.formatPhone()}
-              </a>
-              <a
-                href={`mailto:${brandConfig.contact.email}?subject=Equipment Quote Request`}
-                className="inline-block border border-blue-600 text-blue-300 px-6 py-2 rounded-lg font-medium hover:bg-blue-600 hover:text-white transition-colors"
-              >
-                Send Email
-              </a>
-            </div>
           </div>
         </form>
       </div>
-
-      {/* Footer */}
-      <footer className="bg-black text-white py-12 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h4 className="text-2xl font-bold mb-4">
-              {brandConfig.company.name}
-            </h4>
-            <p className="text-gray-300 mb-6">{brandConfig.company.tagline}</p>
-            <div className="flex justify-center space-x-8">
-              <span>📧 {brandConfig.contact.email}</span>
-              <span>📞 {brandUtils.formatPhone()}</span>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </PageLayout>
   );
 }
