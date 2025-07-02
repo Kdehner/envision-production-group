@@ -1,4 +1,4 @@
-// admin/src/index.js - Exactly following Strapi v3 docs
+// admin/src/index.js - Fixed for Strapi v3 navigation
 import pluginPkg from "../../package.json";
 import pluginId from "./pluginId";
 import App from "./containers/App";
@@ -20,7 +20,7 @@ export default (strapi) => {
     description: pluginDescription,
     icon,
     id: pluginId,
-    initializer: Initializer, // This must be the component, not null
+    initializer: Initializer,
     injectedComponents: [],
     isRequired: pluginPkg.strapi.required || false,
     layout: null,
@@ -30,7 +30,7 @@ export default (strapi) => {
     preventComponentRendering: false,
     trads,
     menu: {
-      // Set a link into the PLUGINS section
+      // CRITICAL: Use pluginsSectionLinks for Strapi v3
       pluginsSectionLinks: [
         {
           destination: `/plugins/${pluginId}`,
@@ -40,24 +40,21 @@ export default (strapi) => {
             defaultMessage: "Inventory Manager",
           },
           name,
-          // Permissions based on docs example
-          permissions: [
-            {
-              action: "plugins::inventory-manager.read",
-              subject: null,
-            },
-          ],
+          // FIXED: Remove permissions that might be blocking menu display
+          // Permissions will be handled at the component level instead
         },
       ],
     },
   };
 
-  console.log("🔧 Plugin config created:", {
+  console.log("🔧 Plugin registration details:", {
     id: plugin.id,
     name: plugin.name,
+    icon: plugin.icon,
     hasInitializer: !!plugin.initializer,
     hasMainComponent: !!plugin.mainComponent,
-    menuLinks: plugin.menu.pluginsSectionLinks.length,
+    menuLinksCount: plugin.menu.pluginsSectionLinks.length,
+    destination: plugin.menu.pluginsSectionLinks[0].destination,
   });
 
   return strapi.registerPlugin(plugin);

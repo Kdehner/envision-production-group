@@ -1,4 +1,4 @@
-// admin/src/containers/Initializer/index.js
+// admin/src/containers/Initializer/index.js - Enhanced for menu display
 import { useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import pluginId from "../../pluginId";
@@ -8,12 +8,16 @@ const Initializer = ({ updatePlugin }) => {
   ref.current = updatePlugin;
 
   useEffect(() => {
-    console.log("🔧 Initializer mounted for", pluginId);
+    console.log("🔧 Initializer starting for plugin:", pluginId);
 
-    // Mark plugin as ready - this is critical for menu display
+    // Critical: Mark plugin as ready for menu display
     ref.current(pluginId, "isReady", true);
 
-    console.log("🔧 Plugin marked as ready:", pluginId);
+    console.log("✅ Plugin marked as ready:", pluginId);
+    console.log("🔧 Menu should now be visible in admin sidebar");
+
+    // Optional: Additional plugin initialization can go here
+    // For example: registering additional components, setting up event listeners, etc.
   }, []);
 
   return null;

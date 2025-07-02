@@ -1,7 +1,24 @@
 module.exports = {
   "inventory-manager": {
-    enabled: false, // Temporarily disable
+    enabled: true,
     resolve: "./plugins/inventory-manager",
   },
-  // ... other plugins
+  "content-type-builder": {
+    enabled: true,
+  },
+  "content-manager": {
+    enabled: true,
+  },
+  "users-permissions": {
+    enabled: true,
+  },
+  email: {
+    enabled: true,
+  },
+  upload: {
+    enabled: true,
+  },
+  i18n: {
+    enabled: true,
+  },
 };
