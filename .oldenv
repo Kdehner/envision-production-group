@@ -1,0 +1,20 @@
+# Database Configuration
+DATABASE_NAME=envision_db
+DATABASE_USERNAME=strapi_user
+DATABASE_PASSWORD=OrangeMonkeyEagle
+
+# Strapi Security Keys (generate these!)
+JWT_SECRET=8ff8103579d4772a2064e0d6cc88c118f32224cb48012b259b172d0e9e8aa0f169c303e464598b8f27830d5efc19b2f21d858d17fc5c2657070da1d5390d75b7
+ADMIN_JWT_SECRET=0de433c641bfbde4cd73f973481e83b6b3be27ab33cdf5252ff297b31033176256137cf66faa1f50e3cba56e604c3ede56fa93634e96a03232b9270a6700e529
+APP_KEYS=G1RA9croQUr10YyFYOWogHJYB1Jp+hVYZcM+6him2KE=,nuIMHtq9/MdG8IlO/HUubthpWVc2Hs82ckQXhBzC1vY=,gbzlwzzO6WwvbjG+xYI3CdWeYkqE04WUSsWknq6+VnA=,3Lx5SNGQ0SQS5c63H0AFvzVTPKkIOv7NNGxRyNmUDs0=
+
+# API Token (will be generated after Strapi setup)
+STRAPI_API_TOKEN=
+
+# Domain for production
+DOMAIN=epg.kevbot.app
+NEXT_PUBLIC_STRAPI_URL=https://epg.kevbot.app
+
+# Set user for proper permissions
+UID=1000
+GID=1000

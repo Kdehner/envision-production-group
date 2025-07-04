@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: epg-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-epg_production}
+      POSTGRES_USER: ${DB_USER:-epg_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - epg-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  epg-network:
+    driver: bridge
