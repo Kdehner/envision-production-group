@@ -6,6 +6,7 @@ services:
     restart: unless-stopped
     user: "${UID:-1000}:${GID:-1000}"
     environment:
+      TZ: America/Denver
       DATABASE_CLIENT: postgres
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
@@ -33,6 +34,7 @@ services:
     container_name: envision-postgres
     restart: unless-stopped
     environment:
+      TZ: America/Denver
       POSTGRES_DB: ${DATABASE_NAME}
       POSTGRES_USER: ${DATABASE_USERNAME}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
@@ -50,6 +52,7 @@ services:
     restart: unless-stopped
     user: "${UID:-1000}:${GID:-1000}"
     environment:
+      TZ: America/Denver
       NODE_ENV: development
       NEXT_PUBLIC_STRAPI_URL: "https://epg.kevbot.app"
       WATCHPACK_POLLING: true  # Enable polling for Docker

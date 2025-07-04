@@ -1,5 +1,11 @@
+// strapi-app/plugins/inventory-manager/config/routes.js
+"use strict";
+
+console.log("🔧 Loading inventory-manager routes...");
+
 module.exports = {
   routes: [
+    // Keep existing working routes
     {
       method: "GET",
       path: "/statistics",
@@ -32,5 +38,33 @@ module.exports = {
         policies: [],
       },
     },
+
+    // Test SKU routes - START SIMPLE
+    {
+      method: "GET",
+      path: "/sku/categories",
+      handler: "sku.getCategoryPrefixes",
+      config: {
+        policies: [],
+      },
+    },
+    {
+      method: "GET",
+      path: "/sku/brands",
+      handler: "sku.getBrandPrefixes",
+      config: {
+        policies: [],
+      },
+    },
+    {
+      method: "POST",
+      path: "/sku/initialize-brands",
+      handler: "sku.initializeBrands",
+      config: {
+        policies: [],
+      },
+    },
   ],
 };
+
+console.log("✅ Inventory-manager routes loaded");
