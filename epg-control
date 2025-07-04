@@ -72,7 +72,7 @@ start_database() {
     fi
     
     cd "$PROJECT_ROOT/infrastructure"
-    docker-compose -f docker-compose.db.yml --env-file "$ENV_FILE" up -d
+    docker compose -f docker-compose.db.yml --env-file "$ENV_FILE" up -d
     
     # Wait for database to be ready
     log "Waiting for database to be ready..."
@@ -92,7 +92,7 @@ start_database() {
 stop_database() {
     log "Stopping PostgreSQL database..."
     cd "$PROJECT_ROOT/infrastructure"
-    docker-compose -f docker-compose.db.yml down
+    docker compose -f docker-compose.db.yml down
     success "Database stopped"
 }
 

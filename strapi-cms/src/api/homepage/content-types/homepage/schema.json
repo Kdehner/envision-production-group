@@ -1,0 +1,49 @@
+{
+  "kind": "singleType",
+  "collectionName": "homepages",
+  "info": {
+    "singularName": "homepage",
+    "pluralName": "homepages",
+    "displayName": "Homepage"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "heroTitle": {
+      "type": "string",
+      "default": "Professional Event Equipment Rental",
+      "required": true
+    },
+    "heroSubtitle": {
+      "type": "text",
+      "default": "Premium lighting, audio, and production equipment for concerts, corporate events, weddings, and productions",
+      "required": true
+    },
+    "heroImage": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "companyDescription": {
+      "type": "blocks",
+      "required": true
+    },
+    "callToActionText": {
+      "type": "string",
+      "default": "Request a Quote"
+    },
+    "callToActionUrl": {
+      "type": "string",
+      "default": "/contact"
+    },
+    "featured_categories": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::equipment-category.equipment-category"
+    }
+  }
+}
