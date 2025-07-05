@@ -373,6 +373,57 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiBrandPrefixBrandPrefix extends Struct.CollectionTypeSchema {
+  collectionName: 'brand_prefixes';
+  info: {
+    displayName: 'Brand Prefix';
+    pluralName: 'brand-prefixes';
+    singularName: 'brand-prefix';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    brandName: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    categories: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::equipment-category.equipment-category'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.String;
+    equipment_models: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::equipment-model.equipment-model'
+    >;
+    instances: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::equipment-instance.equipment-instance'
+    >;
+    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::brand-prefix.brand-prefix'
+    > &
+      Schema.Attribute.Private;
+    prefix: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    primary_category: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::equipment-category.equipment-category'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiCompanySettingCompanySetting
   extends Struct.SingleTypeSchema {
   collectionName: 'company_settings';
@@ -425,13 +476,17 @@ export interface ApiEquipmentCategoryEquipmentCategory
     draftAndPublish: true;
   };
   attributes: {
+    brands: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::brand-prefix.brand-prefix'
+    >;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     description: Schema.Attribute.Text & Schema.Attribute.Required;
-    equipment_item: Schema.Attribute.Relation<
-      'manyToOne',
-      'api::equipment-item.equipment-item'
+    equipment_models: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::equipment-model.equipment-model'
     >;
     isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
@@ -443,7 +498,14 @@ export interface ApiEquipmentCategoryEquipmentCategory
     name: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
+    primary_brands: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::brand-prefix.brand-prefix'
+    >;
     publishedAt: Schema.Attribute.DateTime;
+    skuPrefix: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
     slug: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
     sortOrder: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     updatedAt: Schema.Attribute.DateTime;
@@ -452,40 +514,94 @@ export interface ApiEquipmentCategoryEquipmentCategory
   };
 }
 
-export interface ApiEquipmentItemEquipmentItem
+export interface ApiEquipmentInstanceEquipmentInstance
   extends Struct.CollectionTypeSchema {
-  collectionName: 'equipment_items';
+  collectionName: 'equipment_instances';
   info: {
-    displayName: 'Equipment Item';
-    pluralName: 'equipment-items';
-    singularName: 'equipment-item';
+    displayName: 'Equipment Instance';
+    pluralName: 'equipment-instances';
+    singularName: 'equipment-instance';
   };
   options: {
     draftAndPublish: true;
   };
   attributes: {
-    categories: Schema.Attribute.Relation<
+    brand: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::brand-prefix.brand-prefix'
+    >;
+    condition: Schema.Attribute.Enumeration<
+      ['Excellent', 'Good', 'Fair', 'Poor']
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    equipmentModel: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::equipment-model.equipment-model'
+    >;
+    equipmentStatus: Schema.Attribute.Enumeration<
+      ['Available', 'Rented', 'Maintenance', 'Damaged', 'Retired']
+    >;
+    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
       'oneToMany',
+      'api::equipment-instance.equipment-instance'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    serialNumber: Schema.Attribute.String;
+    sku: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiEquipmentModelEquipmentModel
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'equipment_models';
+  info: {
+    displayName: 'Equipment Model';
+    pluralName: 'equipment-models';
+    singularName: 'equipment-model';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    brand: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::brand-prefix.brand-prefix'
+    >;
+    category: Schema.Attribute.Relation<
+      'manyToOne',
       'api::equipment-category.equipment-category'
     >;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    description: Schema.Attribute.Text & Schema.Attribute.Required;
-    images: Schema.Attribute.Media<'images', true>;
-    isAvailable: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    description: Schema.Attribute.Blocks & Schema.Attribute.Required;
+    featured: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    instances: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::equipment-instance.equipment-instance'
+    >;
+    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
-      'api::equipment-item.equipment-item'
+      'api::equipment-model.equipment-model'
     > &
       Schema.Attribute.Private;
-    name: Schema.Attribute.String & Schema.Attribute.Required;
+    name: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
     publishedAt: Schema.Attribute.DateTime;
-    seoDescription: Schema.Attribute.Text;
-    seoTitle: Schema.Attribute.String;
-    shortDescription: Schema.Attribute.Text & Schema.Attribute.Required;
-    showOnWebsite: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    shortDescription: Schema.Attribute.String & Schema.Attribute.Required;
     slug: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -1045,9 +1161,11 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::brand-prefix.brand-prefix': ApiBrandPrefixBrandPrefix;
       'api::company-setting.company-setting': ApiCompanySettingCompanySetting;
       'api::equipment-category.equipment-category': ApiEquipmentCategoryEquipmentCategory;
-      'api::equipment-item.equipment-item': ApiEquipmentItemEquipmentItem;
+      'api::equipment-instance.equipment-instance': ApiEquipmentInstanceEquipmentInstance;
+      'api::equipment-model.equipment-model': ApiEquipmentModelEquipmentModel;
       'api::homepage.homepage': ApiHomepageHomepage;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;

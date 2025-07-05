@@ -33,11 +33,29 @@
       "type": "integer",
       "default": 0
     },
-    "equipment_item": {
+    "skuPrefix": {
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "regex": "^[A-Z]{2}$"
+    },
+    "brands": {
       "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::equipment-item.equipment-item",
-      "inversedBy": "categories"
+      "relation": "manyToMany",
+      "target": "api::brand-prefix.brand-prefix",
+      "mappedBy": "categories"
+    },
+    "equipment_models": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::equipment-model.equipment-model",
+      "mappedBy": "category"
+    },
+    "primary_brands": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::brand-prefix.brand-prefix",
+      "mappedBy": "primary_category"
     }
   }
 }

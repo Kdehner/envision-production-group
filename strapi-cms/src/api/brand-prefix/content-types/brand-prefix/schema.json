@@ -1,0 +1,57 @@
+{
+  "kind": "collectionType",
+  "collectionName": "brand_prefixes",
+  "info": {
+    "singularName": "brand-prefix",
+    "pluralName": "brand-prefixes",
+    "displayName": "Brand Prefix"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "brandName": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "prefix": {
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "regex": "^[A-Z]{3}$"
+    },
+    "description": {
+      "type": "string"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "categories": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::equipment-category.equipment-category",
+      "inversedBy": "brands"
+    },
+    "equipment_models": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::equipment-model.equipment-model",
+      "mappedBy": "brand"
+    },
+    "instances": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::equipment-instance.equipment-instance",
+      "mappedBy": "brand"
+    },
+    "primary_category": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::equipment-category.equipment-category",
+      "inversedBy": "primary_brands"
+    }
+  }
+}

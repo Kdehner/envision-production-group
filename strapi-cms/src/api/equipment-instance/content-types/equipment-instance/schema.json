@@ -1,0 +1,58 @@
+{
+  "kind": "collectionType",
+  "collectionName": "equipment_instances",
+  "info": {
+    "singularName": "equipment-instance",
+    "pluralName": "equipment-instances",
+    "displayName": "Equipment Instance"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "sku": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "serialNumber": {
+      "type": "string"
+    },
+    "equipmentStatus": {
+      "type": "enumeration",
+      "enum": [
+        "Available",
+        "Rented",
+        "Maintenance",
+        "Damaged",
+        "Retired"
+      ]
+    },
+    "condition": {
+      "type": "enumeration",
+      "enum": [
+        "Excellent",
+        "Good",
+        "Fair",
+        "Poor"
+      ]
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "equipmentModel": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::equipment-model.equipment-model",
+      "inversedBy": "instances"
+    },
+    "brand": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::brand-prefix.brand-prefix",
+      "inversedBy": "instances"
+    }
+  }
+}

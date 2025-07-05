@@ -1,0 +1,59 @@
+{
+  "kind": "collectionType",
+  "collectionName": "equipment_models",
+  "info": {
+    "singularName": "equipment-model",
+    "pluralName": "equipment-models",
+    "displayName": "Equipment Model"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "name",
+      "required": true
+    },
+    "shortDescription": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "blocks",
+      "required": true
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "category": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::equipment-category.equipment-category",
+      "inversedBy": "equipment_models"
+    },
+    "brand": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::brand-prefix.brand-prefix",
+      "inversedBy": "equipment_models"
+    },
+    "instances": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::equipment-instance.equipment-instance",
+      "mappedBy": "equipmentModel"
+    },
+    "featured": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}
