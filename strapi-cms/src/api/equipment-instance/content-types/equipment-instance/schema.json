@@ -4,7 +4,8 @@
   "info": {
     "singularName": "equipment-instance",
     "pluralName": "equipment-instances",
-    "displayName": "Equipment Instance"
+    "displayName": "Equipment Instance",
+    "description": "Individual equipment assets with automatic SKU generation"
   },
   "options": {
     "draftAndPublish": true
@@ -13,7 +14,7 @@
   "attributes": {
     "sku": {
       "type": "string",
-      "required": true,
+      "required": false,
       "unique": true
     },
     "serialNumber": {
@@ -21,6 +22,7 @@
     },
     "equipmentStatus": {
       "type": "enumeration",
+      "default": "Available",
       "enum": [
         "Available",
         "Rented",
@@ -31,6 +33,7 @@
     },
     "condition": {
       "type": "enumeration",
+      "default": "Excellent",
       "enum": [
         "Excellent",
         "Good",
@@ -38,9 +41,35 @@
         "Poor"
       ]
     },
+    "location": {
+      "type": "string",
+      "default": "Warehouse"
+    },
+    "notes": {
+      "type": "text"
+    },
+    "purchaseDate": {
+      "type": "date"
+    },
+    "purchasePrice": {
+      "type": "decimal"
+    },
+    "warrantyExpiration": {
+      "type": "date"
+    },
+    "lastMaintenanceDate": {
+      "type": "date"
+    },
+    "nextMaintenanceDate": {
+      "type": "date"
+    },
     "isActive": {
       "type": "boolean",
       "default": true
+    },
+    "skipAutoSKU": {
+      "type": "boolean",
+      "default": false
     },
     "equipmentModel": {
       "type": "relation",

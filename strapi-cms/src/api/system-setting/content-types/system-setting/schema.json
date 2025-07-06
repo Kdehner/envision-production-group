@@ -1,0 +1,56 @@
+{
+  "kind": "collectionType",
+  "collectionName": "system_settings",
+  "info": {
+    "singularName": "system-setting",
+    "pluralName": "system-settings",
+    "displayName": "System Settings",
+    "description": "Global system configuration settings"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "key": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "value": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "text"
+    },
+    "category": {
+      "type": "enumeration",
+      "enum": [
+        "SKU Generation",
+        "General",
+        "Security",
+        "Business Rules",
+        "Notifications"
+      ],
+      "default": "General"
+    },
+    "dataType": {
+      "type": "enumeration",
+      "enum": [
+        "boolean",
+        "string",
+        "number",
+        "json"
+      ],
+      "default": "string"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "notes": {
+      "type": "text"
+    }
+  }
+}

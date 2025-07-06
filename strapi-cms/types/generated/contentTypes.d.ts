@@ -518,6 +518,7 @@ export interface ApiEquipmentInstanceEquipmentInstance
   extends Struct.CollectionTypeSchema {
   collectionName: 'equipment_instances';
   info: {
+    description: 'Individual equipment assets with automatic SKU generation';
     displayName: 'Equipment Instance';
     pluralName: 'equipment-instances';
     singularName: 'equipment-instance';
@@ -532,7 +533,8 @@ export interface ApiEquipmentInstanceEquipmentInstance
     >;
     condition: Schema.Attribute.Enumeration<
       ['Excellent', 'Good', 'Fair', 'Poor']
-    >;
+    > &
+      Schema.Attribute.DefaultTo<'Excellent'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -542,22 +544,29 @@ export interface ApiEquipmentInstanceEquipmentInstance
     >;
     equipmentStatus: Schema.Attribute.Enumeration<
       ['Available', 'Rented', 'Maintenance', 'Damaged', 'Retired']
-    >;
+    > &
+      Schema.Attribute.DefaultTo<'Available'>;
     isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    lastMaintenanceDate: Schema.Attribute.Date;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::equipment-instance.equipment-instance'
     > &
       Schema.Attribute.Private;
+    location: Schema.Attribute.String & Schema.Attribute.DefaultTo<'Warehouse'>;
+    nextMaintenanceDate: Schema.Attribute.Date;
+    notes: Schema.Attribute.Text;
     publishedAt: Schema.Attribute.DateTime;
+    purchaseDate: Schema.Attribute.Date;
+    purchasePrice: Schema.Attribute.Decimal;
     serialNumber: Schema.Attribute.String;
-    sku: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.Unique;
+    skipAutoSKU: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    sku: Schema.Attribute.String & Schema.Attribute.Unique;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    warrantyExpiration: Schema.Attribute.Date;
   };
 }
 
@@ -653,6 +662,100 @@ export interface ApiHomepageHomepage extends Struct.SingleTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+  };
+}
+
+export interface ApiSkuSequenceSkuSequence extends Struct.CollectionTypeSchema {
+  collectionName: 'sku_sequences';
+  info: {
+    description: 'Tracks sequence numbers for automatic SKU generation per brand/category combination';
+    displayName: 'SKU Sequence';
+    pluralName: 'sku-sequences';
+    singularName: 'sku-sequence';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    brandPrefix: Schema.Attribute.String & Schema.Attribute.Required;
+    categoryPrefix: Schema.Attribute.String & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    currentSequence: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 99999;
+          min: 1;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<1>;
+    description: Schema.Attribute.String;
+    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    lastUsed: Schema.Attribute.DateTime;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::sku-sequence.sku-sequence'
+    > &
+      Schema.Attribute.Private;
+    notes: Schema.Attribute.Text;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiSystemSettingSystemSetting
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'system_settings';
+  info: {
+    description: 'Global system configuration settings';
+    displayName: 'System Settings';
+    pluralName: 'system-settings';
+    singularName: 'system-setting';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    category: Schema.Attribute.Enumeration<
+      [
+        'SKU Generation',
+        'General',
+        'Security',
+        'Business Rules',
+        'Notifications',
+      ]
+    > &
+      Schema.Attribute.DefaultTo<'General'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    dataType: Schema.Attribute.Enumeration<
+      ['boolean', 'string', 'number', 'json']
+    > &
+      Schema.Attribute.DefaultTo<'string'>;
+    description: Schema.Attribute.Text;
+    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    key: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::system-setting.system-setting'
+    > &
+      Schema.Attribute.Private;
+    notes: Schema.Attribute.Text;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    value: Schema.Attribute.String & Schema.Attribute.Required;
   };
 }
 
@@ -1171,6 +1274,8 @@ declare module '@strapi/strapi' {
       'api::equipment-instance.equipment-instance': ApiEquipmentInstanceEquipmentInstance;
       'api::equipment-model.equipment-model': ApiEquipmentModelEquipmentModel;
       'api::homepage.homepage': ApiHomepageHomepage;
+      'api::sku-sequence.sku-sequence': ApiSkuSequenceSkuSequence;
+      'api::system-setting.system-setting': ApiSystemSettingSystemSetting;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;
