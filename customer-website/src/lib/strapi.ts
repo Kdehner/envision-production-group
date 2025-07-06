@@ -1,11 +1,11 @@
-// lib/strapi.ts - Updated for Strapi v5 and EPG Two-Tier Architecture
+// lib/strapi.ts - Official Strapi v5 + Axios syntax from Strapi blog
 import axios from 'axios';
 
 const STRAPI_URL =
   process.env.NEXT_PUBLIC_STRAPI_URL || 'http://127.0.0.1:1337';
 
 const api = axios.create({
-  baseURL: `${STRAPI_URL}/api`, // Note: /api prefix for Strapi v5
+  baseURL: `${STRAPI_URL}/api`,
 });
 
 // Types for Strapi v5 structure and EPG two-tier system
@@ -18,7 +18,6 @@ export interface EquipmentCategory {
   skuPrefix: string;
   isActive: boolean;
   sortOrder: number;
-  icon?: string;
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
@@ -30,7 +29,6 @@ export interface BrandPrefix {
   brandName: string;
   prefix: string;
   description?: string;
-  website?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -43,17 +41,19 @@ export interface EquipmentModel {
   name: string;
   slug: string;
   shortDescription: string;
-  description: string;
-  brand: string;
-  model?: string;
-  specifications?: Record<string, unknown>;
+  description: Array<{
+    type: string;
+    children: Array<{
+      text: string;
+      type?: string;
+    }>;
+  }>; // Strapi v5 blocks type
   featured: boolean;
   isActive: boolean;
-  showOnWebsite: boolean;
-  metaDescription?: string;
-  keywords?: string;
+  showOnWebsite?: boolean;
   // Relations
   category?: EquipmentCategory;
+  brand?: BrandPrefix;
   mainImage?: {
     id: number;
     documentId: string;
@@ -83,7 +83,6 @@ export interface EquipmentModel {
   publishedAt: string;
 }
 
-// Strapi v5 API response wrapper
 interface StrapiResponse<T> {
   data: T;
   meta?: {
@@ -96,13 +95,21 @@ interface StrapiResponse<T> {
   };
 }
 
-// API Functions for Strapi v5 with EPG business logic
+// API Functions for Strapi v5 using clean, consistent object syntax
 export const strapiApi = {
   // Get all equipment categories
   async getCategories(): Promise<EquipmentCategory[]> {
     try {
       const response = await api.get<StrapiResponse<EquipmentCategory[]>>(
-        '/equipment-categories?sort=sortOrder:asc&filters[isActive][$eq]=true'
+        '/equipment-categories',
+        {
+          params: {
+            filters: {
+              isActive: true,
+            },
+            sort: 'sortOrder:asc',
+          },
+        }
       );
       return response.data.data;
     } catch (error) {
@@ -115,7 +122,15 @@ export const strapiApi = {
   async getCategoryBySlug(slug: string): Promise<EquipmentCategory | null> {
     try {
       const response = await api.get<StrapiResponse<EquipmentCategory[]>>(
-        `/equipment-categories?filters[slug][$eq]=${slug}&filters[isActive][$eq]=true`
+        '/equipment-categories',
+        {
+          params: {
+            filters: {
+              slug: slug,
+              isActive: true,
+            },
+          },
+        }
       );
       return response.data.data[0] || null;
     } catch (error) {
@@ -128,7 +143,17 @@ export const strapiApi = {
   async getEquipmentModels(): Promise<EquipmentModel[]> {
     try {
       const response = await api.get<StrapiResponse<EquipmentModel[]>>(
-        '/equipment-models?populate[category]=*&populate[mainImage]=*&filters[isActive][$eq]=true&filters[showOnWebsite][$eq]=true&sort=name:asc'
+        '/equipment-models',
+        {
+          params: {
+            populate: ['category', 'brand', 'mainImage'],
+            filters: {
+              isActive: true,
+              showOnWebsite: true,
+            },
+            sort: 'name:asc',
+          },
+        }
       );
       return response.data.data;
     } catch (error) {
@@ -143,7 +168,20 @@ export const strapiApi = {
   ): Promise<EquipmentModel[]> {
     try {
       const response = await api.get<StrapiResponse<EquipmentModel[]>>(
-        `/equipment-models?populate[category]=*&populate[mainImage]=*&filters[category][id][$eq]=${categoryId}&filters[isActive][$eq]=true&filters[showOnWebsite][$eq]=true&sort=name:asc`
+        '/equipment-models',
+        {
+          params: {
+            populate: ['category', 'brand', 'mainImage'],
+            filters: {
+              category: {
+                id: categoryId,
+              },
+              isActive: true,
+              showOnWebsite: true,
+            },
+            sort: 'name:asc',
+          },
+        }
       );
       return response.data.data;
     } catch (error) {
@@ -158,7 +196,20 @@ export const strapiApi = {
   ): Promise<EquipmentModel[]> {
     try {
       const response = await api.get<StrapiResponse<EquipmentModel[]>>(
-        `/equipment-models?populate[category]=*&populate[mainImage]=*&filters[category][slug][$eq]=${categorySlug}&filters[isActive][$eq]=true&filters[showOnWebsite][$eq]=true&sort=name:asc`
+        '/equipment-models',
+        {
+          params: {
+            populate: ['category', 'brand', 'mainImage'],
+            filters: {
+              category: {
+                slug: categorySlug,
+              },
+              isActive: true,
+              showOnWebsite: true,
+            },
+            sort: 'name:asc',
+          },
+        }
       );
       return response.data.data;
     } catch (error) {
@@ -167,28 +218,53 @@ export const strapiApi = {
     }
   },
 
-  // Get single equipment model
-  async getEquipmentModel(id: number): Promise<EquipmentModel | null> {
+  // Get single equipment model by slug (the working method we'll use)
+  async getEquipmentModelBySlug(slug: string): Promise<EquipmentModel | null> {
     try {
-      const response = await api.get<StrapiResponse<EquipmentModel>>(
-        `/equipment-models/${id}?populate[category]=*&populate[mainImage]=*&populate[gallery]=*&populate[manuals]=*`
+      console.log(`Fetching equipment model with slug: ${slug}`);
+
+      const response = await api.get<StrapiResponse<EquipmentModel[]>>(
+        '/equipment-models',
+        {
+          params: {
+            populate: ['category', 'brand', 'mainImage', 'gallery', 'manuals'],
+            filters: {
+              slug: slug,
+              isActive: true,
+              showOnWebsite: true,
+            },
+          },
+        }
       );
-      return response.data.data;
+
+      console.log('Equipment model by slug response:', response.data);
+      return response.data.data[0] || null;
     } catch (error) {
-      console.error('Error fetching equipment model:', error);
+      console.error('Error fetching equipment model by slug:', error);
       return null;
     }
   },
 
-  // Get equipment model by slug
-  async getEquipmentModelBySlug(slug: string): Promise<EquipmentModel | null> {
+  // Legacy support - redirect to slug method
+  async getEquipmentModel(id: number): Promise<EquipmentModel | null> {
+    console.warn(
+      'getEquipmentModel(id) is deprecated. Use getEquipmentModelBySlug(slug) instead.'
+    );
+
+    // Try to find the equipment by ID in the full list and return its slug
     try {
-      const response = await api.get<StrapiResponse<EquipmentModel[]>>(
-        `/equipment-models?populate[category]=*&populate[mainImage]=*&populate[gallery]=*&populate[manuals]=*&filters[slug][$eq]=${slug}&filters[isActive][$eq]=true&filters[showOnWebsite][$eq]=true`
-      );
-      return response.data.data[0] || null;
+      const allEquipment = await this.getEquipmentModels();
+      const equipment = allEquipment.find((item) => item.id === id);
+
+      if (equipment && equipment.slug) {
+        console.log(`Redirecting ID ${id} to slug: ${equipment.slug}`);
+        return this.getEquipmentModelBySlug(equipment.slug);
+      }
+
+      console.log(`No equipment found with ID: ${id}`);
+      return null;
     } catch (error) {
-      console.error('Error fetching equipment model by slug:', error);
+      console.error(`Error in legacy getEquipmentModel for ID ${id}:`, error);
       return null;
     }
   },
@@ -197,9 +273,22 @@ export const strapiApi = {
   async getFeaturedEquipment(): Promise<EquipmentModel[]> {
     try {
       const response = await api.get<StrapiResponse<EquipmentModel[]>>(
-        '/equipment-models?populate[category]=*&populate[mainImage]=*&filters[featured][$eq]=true&filters[isActive][$eq]=true&filters[showOnWebsite][$eq]=true&sort=name:asc'
+        '/equipment-models',
+        {
+          params: {
+            populate: ['category', 'brand', 'mainImage'],
+            filters: {
+              featured: true,
+              isActive: true,
+              showOnWebsite: true,
+            },
+            sort: 'name:asc',
+          },
+        }
       );
-      return response.data.data;
+
+      console.log('Featured equipment response:', response.data);
+      return Array.isArray(response.data.data) ? response.data.data : [];
     } catch (error) {
       console.error('Error fetching featured equipment:', error);
       return [];
@@ -210,7 +299,29 @@ export const strapiApi = {
   async searchEquipmentModels(query: string): Promise<EquipmentModel[]> {
     try {
       const response = await api.get<StrapiResponse<EquipmentModel[]>>(
-        `/equipment-models?populate[category]=*&populate[mainImage]=*&filters[$or][0][name][$containsi]=${query}&filters[$or][1][shortDescription][$containsi]=${query}&filters[$or][2][brand][$containsi]=${query}&filters[isActive][$eq]=true&filters[showOnWebsite][$eq]=true&sort=name:asc`
+        '/equipment-models',
+        {
+          params: {
+            populate: ['category', 'brand', 'mainImage'],
+            filters: {
+              $or: [
+                {
+                  name: {
+                    $containsi: query,
+                  },
+                },
+                {
+                  shortDescription: {
+                    $containsi: query,
+                  },
+                },
+              ],
+              isActive: true,
+              showOnWebsite: true,
+            },
+            sort: 'name:asc',
+          },
+        }
       );
       return response.data.data;
     } catch (error) {
@@ -223,7 +334,15 @@ export const strapiApi = {
   async getBrandPrefixes(): Promise<BrandPrefix[]> {
     try {
       const response = await api.get<StrapiResponse<BrandPrefix[]>>(
-        '/brand-prefixes?filters[isActive][$eq]=true&sort=brandName:asc'
+        '/brand-prefixes',
+        {
+          params: {
+            filters: {
+              isActive: true,
+            },
+            sort: 'brandName:asc',
+          },
+        }
       );
       return response.data.data;
     } catch (error) {
@@ -231,23 +350,55 @@ export const strapiApi = {
       return [];
     }
   },
+
+  // Legacy support for old API calls
+  async getEquipment(): Promise<EquipmentModel[]> {
+    return this.getEquipmentModels();
+  },
+
+  async getEquipmentItem(id: number): Promise<EquipmentModel | null> {
+    return this.getEquipmentModel(id);
+  },
 };
 
-// Helper function to get full image URL (handles both absolute and relative URLs)
+// Helper function to extract text from Strapi v5 blocks
+export const extractTextFromBlocks = (
+  blocks: Array<{
+    type: string;
+    children: Array<{
+      text: string;
+      type?: string;
+    }>;
+  }>
+): string => {
+  if (!Array.isArray(blocks)) {
+    return '';
+  }
+
+  return blocks
+    .map((block) => {
+      if (block.type === 'paragraph' && block.children) {
+        return block.children.map((child) => child.text || '').join('');
+      }
+      return '';
+    })
+    .join(' ')
+    .trim();
+};
 export const getStrapiImageUrl = (url: string): string => {
   if (!url) return '';
   if (url.startsWith('http')) return url;
   return `${STRAPI_URL}${url}`;
 };
 
-// Helper function to get file URL (for manuals/PDFs)
+// Helper function to get file URL
 export const getStrapiFileUrl = (url: string): string => {
   if (!url) return '';
   if (url.startsWith('http')) return url;
   return `${STRAPI_URL}${url}`;
 };
 
-// Consultation-focused helper - no inventory quantities exposed
+// Consultation-focused helper
 export const getEquipmentForQuote = async (
   categorySlug?: string
 ): Promise<EquipmentModel[]> => {

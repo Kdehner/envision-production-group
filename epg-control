@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# EPG Control Script - Manage all services for Envision Production Group
+# EPG Control Script - Enhanced Process Management
+# Manage all services for Envision Production Group
 # Usage: ./epg-control <command> [service] [environment]
 
 set -e
@@ -38,6 +39,14 @@ declare -A SERVICES=(
     ["all"]="database,strapi,customer,employee"
 )
 
+# Port definitions
+declare -A PORTS=(
+    ["strapi"]="1337"
+    ["customer"]="3000"
+    ["employee"]="3001"
+    ["database"]="5432"
+)
+
 # PID file locations
 PID_DIR="$PROJECT_ROOT/.pids"
 mkdir -p "$PID_DIR"
@@ -60,6 +69,110 @@ success() {
 
 warning() {
     echo -e "${YELLOW}[WARNING] $1${NC}"
+}
+
+# Enhanced process management functions
+kill_existing_processes() {
+    local service=$1
+    log "Checking for existing $service processes..."
+    
+    case $service in
+        "strapi")
+            # Kill any existing Strapi processes
+            pkill -f "strapi develop" 2>/dev/null || true
+            pkill -f "strapi-cms.*develop" 2>/dev/null || true
+            pkill -f "strapi-cms.*start" 2>/dev/null || true
+            ;;
+        "customer")
+            # Kill any existing Next.js customer processes
+            pkill -f "customer-website.*next" 2>/dev/null || true
+            pkill -f "next.*customer-website" 2>/dev/null || true
+            ;;
+        "employee")
+            # Kill any existing Next.js employee processes  
+            pkill -f "employee-ops.*next" 2>/dev/null || true
+            pkill -f "next.*employee-ops" 2>/dev/null || true
+            ;;
+    esac
+    
+    # Clean up stale PID files
+    rm -f "$PID_DIR/$service.pid"
+    
+    # Wait a moment for processes to die
+    sleep 2
+}
+
+force_kill_port() {
+    local port=$1
+    local service_name=$2
+    
+    if lsof -i ":$port" > /dev/null 2>&1; then
+        warning "Port $port is in use by another process, force killing..."
+        # Try to kill gracefully first
+        lsof -ti ":$port" | xargs -r kill 2>/dev/null || true
+        sleep 2
+        
+        # Force kill if still running
+        if lsof -i ":$port" > /dev/null 2>&1; then
+            warning "Force killing processes on port $port..."
+            sudo fuser -k "$port/tcp" 2>/dev/null || true
+            sleep 1
+        fi
+    fi
+}
+
+verify_process_started() {
+    local pid=$1
+    local service=$2
+    local port=$3
+    
+    # Check if PID is still running
+    if ! kill -0 "$pid" 2>/dev/null; then
+        error "$service failed to start. Check logs: epglog$service"
+        return 1
+    fi
+    
+    # Check if port is listening (for services that use ports)
+    if [[ -n "$port" ]]; then
+        local timeout=10
+        while ! lsof -i ":$port" > /dev/null 2>&1 && [[ $timeout -gt 0 ]]; do
+            sleep 1
+            timeout=$((timeout - 1))
+        done
+        
+        if [[ $timeout -eq 0 ]]; then
+            warning "$service started but not listening on port $port yet"
+        fi
+    fi
+    
+    return 0
+}
+
+# Nuclear cleanup function
+cleanup_all_processes() {
+    log "Nuclear cleanup - killing all EPG processes..."
+    
+    # Kill all known process patterns
+    pkill -f "strapi develop" 2>/dev/null || true
+    pkill -f "strapi.*start" 2>/dev/null || true
+    pkill -f "next dev" 2>/dev/null || true
+    pkill -f "next start" 2>/dev/null || true
+    pkill -f "customer-website" 2>/dev/null || true
+    pkill -f "employee-ops" 2>/dev/null || true
+    pkill -f "strapi-cms" 2>/dev/null || true
+    
+    # Kill by ports
+    for port in 1337 3000 3001 3007; do
+        if lsof -i ":$port" > /dev/null 2>&1; then
+            warning "Force killing processes on port $port"
+            sudo fuser -k "$port/tcp" 2>/dev/null || true
+        fi
+    done
+    
+    # Clean all PID files
+    rm -f "$PID_DIR"/*.pid
+    
+    success "All processes cleaned up"
 }
 
 # Database management
@@ -101,17 +214,13 @@ restart_database() {
     start_database
 }
 
-# Strapi CMS management
+# Enhanced Strapi CMS management
 start_strapi() {
     log "Starting Strapi CMS..."
     
-    if [[ -f "$PID_DIR/strapi.pid" ]]; then
-        local pid=$(cat "$PID_DIR/strapi.pid")
-        if kill -0 "$pid" 2>/dev/null; then
-            warning "Strapi already running (PID: $pid)"
-            return 0
-        fi
-    fi
+    # Kill any existing instances first
+    kill_existing_processes "strapi"
+    force_kill_port "1337" "strapi"
     
     cd "$PROJECT_ROOT/strapi-cms"
     
@@ -125,31 +234,39 @@ start_strapi() {
     if [[ "$ENVIRONMENT" == "development" ]]; then
         nohup npm run develop > "$LOG_DIR/strapi.log" 2>&1 &
     else
-        # Build for production
         npm run build
         nohup npm start > "$LOG_DIR/strapi.log" 2>&1 &
     fi
     
-    echo $! > "$PID_DIR/strapi.pid"
-    success "Strapi started (PID: $!)"
+    local new_pid=$!
+    echo $new_pid > "$PID_DIR/strapi.pid"
+    success "Strapi started (PID: $new_pid)"
+    
+    # Verify it's actually running
+    sleep 3
+    if ! verify_process_started "$new_pid" "strapi" "1337"; then
+        return 1
+    fi
 }
 
 stop_strapi() {
     log "Stopping Strapi CMS..."
     
+    # Kill by PID file first
     if [[ -f "$PID_DIR/strapi.pid" ]]; then
         local pid=$(cat "$PID_DIR/strapi.pid")
         if kill -0 "$pid" 2>/dev/null; then
-            kill "$pid"
-            rm "$PID_DIR/strapi.pid"
-            success "Strapi stopped"
-        else
-            warning "Strapi not running"
-            rm -f "$PID_DIR/strapi.pid"
+            kill "$pid" 2>/dev/null || true
+            sleep 2
         fi
-    else
-        warning "Strapi PID file not found"
+        rm -f "$PID_DIR/strapi.pid"
     fi
+    
+    # Kill any remaining processes
+    kill_existing_processes "strapi"
+    force_kill_port "1337" "strapi"
+    
+    success "Strapi stopped"
 }
 
 restart_strapi() {
@@ -158,17 +275,13 @@ restart_strapi() {
     start_strapi
 }
 
-# Customer Website management
+# Enhanced Customer Website management
 start_customer() {
     log "Starting Customer Website..."
     
-    if [[ -f "$PID_DIR/customer.pid" ]]; then
-        local pid=$(cat "$PID_DIR/customer.pid")
-        if kill -0 "$pid" 2>/dev/null; then
-            warning "Customer website already running (PID: $pid)"
-            return 0
-        fi
-    fi
+    # Kill any existing instances first
+    kill_existing_processes "customer"
+    force_kill_port "3000" "customer"
     
     cd "$PROJECT_ROOT/customer-website"
     
@@ -186,26 +299,35 @@ start_customer() {
         nohup npm start > "$LOG_DIR/customer.log" 2>&1 &
     fi
     
-    echo $! > "$PID_DIR/customer.pid"
-    success "Customer website started (PID: $!)"
+    local new_pid=$!
+    echo $new_pid > "$PID_DIR/customer.pid"
+    success "Customer website started (PID: $new_pid)"
+    
+    # Verify it's actually running
+    sleep 3
+    if ! verify_process_started "$new_pid" "customer" ""; then
+        return 1
+    fi
 }
 
 stop_customer() {
     log "Stopping Customer Website..."
     
+    # Kill by PID file first
     if [[ -f "$PID_DIR/customer.pid" ]]; then
         local pid=$(cat "$PID_DIR/customer.pid")
         if kill -0 "$pid" 2>/dev/null; then
-            kill "$pid"
-            rm "$PID_DIR/customer.pid"
-            success "Customer website stopped"
-        else
-            warning "Customer website not running"
-            rm -f "$PID_DIR/customer.pid"
+            kill "$pid" 2>/dev/null || true
+            sleep 2
         fi
-    else
-        warning "Customer website PID file not found"
+        rm -f "$PID_DIR/customer.pid"
     fi
+    
+    # Kill any remaining processes
+    kill_existing_processes "customer"
+    force_kill_port "3000" "customer"
+    
+    success "Customer website stopped"
 }
 
 restart_customer() {
@@ -214,17 +336,13 @@ restart_customer() {
     start_customer
 }
 
-# Employee Operations management
+# Enhanced Employee Operations management
 start_employee() {
     log "Starting Employee Operations..."
     
-    if [[ -f "$PID_DIR/employee.pid" ]]; then
-        local pid=$(cat "$PID_DIR/employee.pid")
-        if kill -0 "$pid" 2>/dev/null; then
-            warning "Employee operations already running (PID: $pid)"
-            return 0
-        fi
-    fi
+    # Kill any existing instances first
+    kill_existing_processes "employee"
+    force_kill_port "3001" "employee"
     
     cd "$PROJECT_ROOT/employee-ops"
     
@@ -242,26 +360,35 @@ start_employee() {
         nohup npm start > "$LOG_DIR/employee.log" 2>&1 &
     fi
     
-    echo $! > "$PID_DIR/employee.pid"
-    success "Employee operations started (PID: $!)"
+    local new_pid=$!
+    echo $new_pid > "$PID_DIR/employee.pid"
+    success "Employee operations started (PID: $new_pid)"
+    
+    # Verify it's actually running
+    sleep 3
+    if ! verify_process_started "$new_pid" "employee" ""; then
+        return 1
+    fi
 }
 
 stop_employee() {
     log "Stopping Employee Operations..."
     
+    # Kill by PID file first
     if [[ -f "$PID_DIR/employee.pid" ]]; then
         local pid=$(cat "$PID_DIR/employee.pid")
         if kill -0 "$pid" 2>/dev/null; then
-            kill "$pid"
-            rm "$PID_DIR/employee.pid"
-            success "Employee operations stopped"
-        else
-            warning "Employee operations not running"
-            rm -f "$PID_DIR/employee.pid"
+            kill "$pid" 2>/dev/null || true
+            sleep 2
         fi
-    else
-        warning "Employee operations PID file not found"
+        rm -f "$PID_DIR/employee.pid"
     fi
+    
+    # Kill any remaining processes
+    kill_existing_processes "employee"
+    force_kill_port "3001" "employee"
+    
+    success "Employee operations stopped"
 }
 
 restart_employee() {
@@ -282,7 +409,9 @@ start_service() {
             start_database
             sleep 3
             start_strapi
+            sleep 2
             start_customer
+            sleep 2
             start_employee
             ;;
         *) error "Unknown service: $service" ;;
@@ -322,30 +451,60 @@ restart_service() {
     esac
 }
 
-# Status checking
+# Enhanced status checking
 status() {
     log "EPG Services Status ($ENVIRONMENT environment):"
     echo
     
     # Database status
     if docker ps | grep -q epg-postgres; then
-        echo -e "  ${GREEN}✓ Database${NC} - Running (Docker)"
+        echo -e "  ${GREEN}✓ Database${NC} - Running (Docker container)"
+        if docker exec epg-postgres pg_isready -U "$DB_USER" -d "$DB_NAME" > /dev/null 2>&1; then
+            echo -e "    ${GREEN}└─ PostgreSQL ready${NC}"
+        else
+            echo -e "    ${YELLOW}└─ PostgreSQL starting...${NC}"
+        fi
     else
         echo -e "  ${RED}✗ Database${NC} - Stopped"
     fi
     
-    # Check native services
+    # Check native services with enhanced info
     for service in strapi customer employee; do
+        local port=${PORTS[$service]}
+        local status_prefix="  "
+        
         if [[ -f "$PID_DIR/$service.pid" ]]; then
             local pid=$(cat "$PID_DIR/$service.pid")
             if kill -0 "$pid" 2>/dev/null; then
-                echo -e "  ${GREEN}✓ $(echo $service | sed 's/.*/\u&/')${NC} - Running (PID: $pid)"
+                echo -e "${status_prefix}${GREEN}✓ $(echo $service | sed 's/.*/\u&/')${NC} - Running (PID: $pid)"
+                
+                # Check port status
+                if [[ -n "$port" ]] && lsof -i ":$port" > /dev/null 2>&1; then
+                    local actual_port=$(lsof -i -P | grep "$pid" | grep LISTEN | awk '{print $9}' | cut -d: -f2)
+                    if [[ -n "$actual_port" ]]; then
+                        echo -e "    ${GREEN}└─ Listening on port $actual_port${NC}"
+                    fi
+                fi
             else
-                echo -e "  ${RED}✗ $(echo $service | sed 's/.*/\u&/')${NC} - Dead process"
+                echo -e "${status_prefix}${RED}✗ $(echo $service | sed 's/.*/\u&/')${NC} - Dead process (stale PID)"
                 rm -f "$PID_DIR/$service.pid"
             fi
         else
-            echo -e "  ${RED}✗ $(echo $service | sed 's/.*/\u&/')${NC} - Stopped"
+            echo -e "${status_prefix}${RED}✗ $(echo $service | sed 's/.*/\u&/')${NC} - Stopped"
+        fi
+    done
+    
+    echo
+    
+    # Show port usage summary
+    echo -e "${BLUE}Port Usage:${NC}"
+    for service in strapi customer employee; do
+        local port=${PORTS[$service]}
+        if lsof -i ":$port" > /dev/null 2>&1; then
+            local process_info=$(lsof -i ":$port" | tail -n 1 | awk '{print $1, $2}')
+            echo -e "  Port $port: ${GREEN}In use${NC} ($process_info)"
+        else
+            echo -e "  Port $port: ${RED}Available${NC}"
         fi
     done
     
@@ -416,7 +575,7 @@ switch_env() {
 
 # Help/Usage
 usage() {
-    echo "EPG Control Script - Manage EPG Infrastructure"
+    echo "EPG Control Script - Enhanced Process Management"
     echo
     echo "Usage: $0 <command> [service] [environment]"
     echo
@@ -424,8 +583,9 @@ usage() {
     echo "  start <service>     Start a service"
     echo "  stop <service>      Stop a service"
     echo "  restart <service>   Restart a service"
-    echo "  status              Show status of all services"
+    echo "  status              Show detailed status of all services"
     echo "  logs [service]      Show logs (default: all)"
+    echo "  cleanup             Nuclear cleanup - kill all EPG processes"
     echo "  switch <env>        Switch environment and restart"
     echo "  help                Show this help"
     echo
@@ -444,6 +604,7 @@ usage() {
     echo "  $0 start all development"
     echo "  $0 restart strapi"
     echo "  $0 logs customer"
+    echo "  $0 cleanup"
     echo "  $0 switch production"
     echo "  $0 status"
 }
@@ -479,6 +640,9 @@ case $1 in
         ;;
     "logs")
         logs $1 $2
+        ;;
+    "cleanup")
+        cleanup_all_processes
         ;;
     "switch")
         if [[ -z $2 ]]; then

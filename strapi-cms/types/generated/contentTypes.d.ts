@@ -586,6 +586,7 @@ export interface ApiEquipmentModelEquipmentModel
       Schema.Attribute.Private;
     description: Schema.Attribute.Blocks & Schema.Attribute.Required;
     featured: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    gallery: Schema.Attribute.Media<'images', true>;
     instances: Schema.Attribute.Relation<
       'oneToMany',
       'api::equipment-instance.equipment-instance'
@@ -597,11 +598,14 @@ export interface ApiEquipmentModelEquipmentModel
       'api::equipment-model.equipment-model'
     > &
       Schema.Attribute.Private;
+    mainImage: Schema.Attribute.Media<'images'>;
+    manuals: Schema.Attribute.Media<'files', true>;
     name: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
     publishedAt: Schema.Attribute.DateTime;
     shortDescription: Schema.Attribute.String & Schema.Attribute.Required;
+    showOnWebsite: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
     slug: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &

@@ -54,6 +54,31 @@
     "featured": {
       "type": "boolean",
       "default": false
+    },
+    "showOnWebsite": {
+      "type": "boolean",
+      "default": true
+    },
+    "mainImage": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "gallery": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "manuals": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": [
+        "files"
+      ]
     }
   }
 }
