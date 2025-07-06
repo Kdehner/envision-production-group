@@ -1,5 +1,5 @@
 // frontend/src/app/equipment/[slug]/page.tsx
-'use client'; // Make it a client component for interactivity
+'use client';
 
 import React, { useState } from 'react';
 import {
@@ -19,7 +19,6 @@ interface EquipmentDetailPageProps {
   params: Promise<{ slug: string }>;
 }
 
-// We need to fetch data on client side now
 export default function EquipmentDetailPage({
   params,
 }: EquipmentDetailPageProps) {
@@ -29,6 +28,7 @@ export default function EquipmentDetailPage({
   );
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [thumbnailStartIndex, setThumbnailStartIndex] = useState(0);
 
   // Fetch data on component mount
   React.useEffect(() => {
@@ -81,20 +81,24 @@ export default function EquipmentDetailPage({
     return 'Professional equipment specifications and details available upon request.';
   };
 
-  // Create image gallery array (main image + gallery images)
+  // Create image gallery array (main image + gallery images) with validation
   const getAllImages = () => {
     if (!equipment) return [];
 
     const images = [];
 
-    // Add main image first
-    if (equipment.mainImage) {
+    // Add main image first (with validation)
+    if (equipment.mainImage && equipment.mainImage.url) {
       images.push(equipment.mainImage);
     }
 
-    // Add gallery images
-    if (equipment.gallery && equipment.gallery.length > 0) {
-      images.push(...equipment.gallery);
+    // Add gallery images (with validation)
+    if (equipment.gallery && Array.isArray(equipment.gallery)) {
+      equipment.gallery.forEach((image) => {
+        if (image && image.url) {
+          images.push(image);
+        }
+      });
     }
 
     return images;
@@ -102,6 +106,62 @@ export default function EquipmentDetailPage({
 
   const allImages = getAllImages();
   const currentImage = allImages[selectedImageIndex];
+
+  // Calculate visible thumbnails (4 at a time)
+  const maxVisibleThumbnails = 4;
+  const visibleThumbnails = allImages.slice(
+    thumbnailStartIndex,
+    thumbnailStartIndex + maxVisibleThumbnails
+  );
+
+  // Navigation functions
+  const goToPrevious = () => {
+    const newIndex =
+      selectedImageIndex === 0 ? allImages.length - 1 : selectedImageIndex - 1;
+    setSelectedImageIndex(newIndex);
+
+    // Adjust thumbnail view if needed
+    if (newIndex < thumbnailStartIndex) {
+      setThumbnailStartIndex(Math.max(0, newIndex - maxVisibleThumbnails + 1));
+    } else if (newIndex >= thumbnailStartIndex + maxVisibleThumbnails) {
+      setThumbnailStartIndex(
+        Math.min(allImages.length - maxVisibleThumbnails, newIndex)
+      );
+    }
+  };
+
+  const goToNext = () => {
+    const newIndex =
+      selectedImageIndex === allImages.length - 1 ? 0 : selectedImageIndex + 1;
+    setSelectedImageIndex(newIndex);
+
+    // Adjust thumbnail view if needed
+    if (newIndex < thumbnailStartIndex) {
+      setThumbnailStartIndex(Math.max(0, newIndex - maxVisibleThumbnails + 1));
+    } else if (newIndex >= thumbnailStartIndex + maxVisibleThumbnails) {
+      setThumbnailStartIndex(
+        Math.min(allImages.length - maxVisibleThumbnails, newIndex)
+      );
+    }
+  };
+
+  const selectImage = (index: number) => {
+    const actualIndex = thumbnailStartIndex + index;
+    setSelectedImageIndex(actualIndex);
+  };
+
+  // Safe image URL function
+  const getSafeImageUrl = (image: any) => {
+    if (!image || !image.url) {
+      return null;
+    }
+    try {
+      return getStrapiImageUrl(image.url);
+    } catch (error) {
+      console.error('Error processing image URL:', error);
+      return null;
+    }
+  };
 
   if (loading) {
     return (
@@ -130,56 +190,228 @@ export default function EquipmentDetailPage({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Interactive Image Gallery */}
           <div className="space-y-4">
-            {/* Main Image Display */}
-            <div className="aspect-square bg-gray-700 rounded-lg overflow-hidden">
-              {currentImage ? (
-                <Image
-                  src={getStrapiImageUrl(currentImage.url)}
-                  alt={currentImage.alternativeText || equipment.name}
-                  width={600}
-                  height={600}
-                  className="w-full h-full object-cover"
-                  priority
-                />
+            {/* Main Image Display with Overlay Navigation */}
+            <div className="relative aspect-square bg-gray-700 rounded-lg overflow-hidden shadow-lg border border-gray-600 group">
+              {currentImage && getSafeImageUrl(currentImage) ? (
+                <>
+                  <Image
+                    src={getSafeImageUrl(currentImage)!}
+                    alt={currentImage.alternativeText || equipment.name}
+                    width={600}
+                    height={600}
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                    priority
+                    onError={(e) => {
+                      console.error('Image failed to load:', currentImage);
+                      // Hide the broken image and show placeholder
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+
+                  {/* Left Arrow - Only show if more than 1 image */}
+                  {allImages.length > 1 && (
+                    <button
+                      onClick={goToPrevious}
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-75 text-white p-3 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-110"
+                      aria-label="Previous image"
+                    >
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 19l-7-7 7-7"
+                        />
+                      </svg>
+                    </button>
+                  )}
+
+                  {/* Right Arrow - Only show if more than 1 image */}
+                  {allImages.length > 1 && (
+                    <button
+                      onClick={goToNext}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-75 text-white p-3 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-110"
+                      aria-label="Next image"
+                    >
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </button>
+                  )}
+
+                  {/* Image Counter Overlay - Only show if more than 1 image */}
+                  {allImages.length > 1 && (
+                    <div className="absolute bottom-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm font-medium transition-opacity duration-300 opacity-0 group-hover:opacity-100">
+                      {selectedImageIndex + 1} / {allImages.length}
+                    </div>
+                  )}
+                </>
               ) : (
-                <div className="flex items-center justify-center h-full text-gray-400">
-                  <span className="text-6xl">📦</span>
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 bg-gradient-to-br from-gray-700 to-gray-800">
+                  <div className="text-center">
+                    <span className="text-6xl mb-4 block">📦</span>
+                    <p className="text-lg font-medium">No Image Available</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Professional specifications available upon request
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Gallery Thumbnails - Clickable */}
+            {/* Gallery Thumbnails - Limited to 4 with Smart Navigation */}
             {allImages.length > 1 && (
-              <div className="grid grid-cols-4 gap-2">
-                {allImages.slice(0, 8).map((image, index) => (
-                  <button
-                    key={image.id || index}
-                    onClick={() => setSelectedImageIndex(index)}
-                    className={`aspect-square bg-gray-700 rounded-lg overflow-hidden transition-all duration-200 ${
-                      selectedImageIndex === index
-                        ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-gray-900'
-                        : 'hover:ring-2 hover:ring-gray-400 hover:ring-offset-2 hover:ring-offset-gray-900'
-                    }`}
-                  >
-                    <Image
-                      src={getStrapiImageUrl(image.url)}
-                      alt={
-                        image.alternativeText ||
-                        `${equipment.name} ${index + 1}`
+              <div className="space-y-3">
+                {/* Thumbnail Grid - Always shows 4 slots */}
+                <div className="grid grid-cols-4 gap-3">
+                  {Array.from({ length: maxVisibleThumbnails }).map(
+                    (_, index) => {
+                      const image = visibleThumbnails[index];
+                      const actualImageIndex = thumbnailStartIndex + index;
+                      const uniqueKey = `thumbnail-${
+                        image?.id || 'empty'
+                      }-${actualImageIndex}`;
+
+                      // Empty slot if no image
+                      if (!image) {
+                        return (
+                          <div
+                            key={uniqueKey}
+                            className="aspect-square bg-gray-800 rounded-lg border border-gray-600 opacity-50"
+                          />
+                        );
                       }
-                      width={150}
-                      height={150}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
+
+                      const safeImageUrl = getSafeImageUrl(image);
+
+                      if (!safeImageUrl) {
+                        return (
+                          <div
+                            key={uniqueKey}
+                            className="aspect-square bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center text-gray-500 border border-gray-600"
+                          >
+                            <span className="text-xs">No Image</span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={uniqueKey}
+                          onClick={() => selectImage(index)}
+                          className={`aspect-square bg-gray-700 rounded-lg overflow-hidden transition-all duration-300 transform hover:scale-105 ${
+                            selectedImageIndex === actualImageIndex
+                              ? 'ring-3 ring-blue-500 ring-offset-2 ring-offset-gray-900 shadow-lg scale-105'
+                              : 'hover:ring-2 hover:ring-gray-400 hover:ring-offset-2 hover:ring-offset-gray-900 hover:shadow-md'
+                          }`}
+                        >
+                          <Image
+                            src={safeImageUrl}
+                            alt={
+                              image.alternativeText ||
+                              `${equipment.name} image ${actualImageIndex + 1}`
+                            }
+                            width={150}
+                            height={150}
+                            className="w-full h-full object-cover transition-transform duration-300"
+                            onError={(e) => {
+                              console.error('Thumbnail failed to load:', image);
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+
+                {/* Thumbnail Navigation - Only show if more than 4 images */}
+                {allImages.length > maxVisibleThumbnails && (
+                  <div className="flex items-center justify-center space-x-4">
+                    <button
+                      onClick={() =>
+                        setThumbnailStartIndex(
+                          Math.max(0, thumbnailStartIndex - 1)
+                        )
+                      }
+                      disabled={thumbnailStartIndex === 0}
+                      className="flex items-center space-x-1 px-3 py-1 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    >
+                      <span>←</span>
+                    </button>
+
+                    <div className="text-xs text-gray-400">
+                      {thumbnailStartIndex + 1}-
+                      {Math.min(
+                        thumbnailStartIndex + maxVisibleThumbnails,
+                        allImages.length
+                      )}{' '}
+                      of {allImages.length}
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        setThumbnailStartIndex(
+                          Math.min(
+                            allImages.length - maxVisibleThumbnails,
+                            thumbnailStartIndex + 1
+                          )
+                        )
+                      }
+                      disabled={
+                        thumbnailStartIndex + maxVisibleThumbnails >=
+                        allImages.length
+                      }
+                      className="flex items-center space-x-1 px-3 py-1 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    >
+                      <span>→</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Image Counter */}
+            {/* Main Image Navigation */}
             {allImages.length > 1 && (
-              <div className="text-center text-gray-400 text-sm">
-                {selectedImageIndex + 1} of {allImages.length}
+              <div className="flex items-center justify-between text-gray-400 text-sm">
+                <button
+                  onClick={goToPrevious}
+                  className="flex items-center space-x-1 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors"
+                >
+                  <span>←</span>
+                  <span>Previous</span>
+                </button>
+
+                <div className="flex items-center space-x-2">
+                  <span className="text-white font-medium">
+                    {selectedImageIndex + 1}
+                  </span>
+                  <span>of</span>
+                  <span>{allImages.length}</span>
+                </div>
+
+                <button
+                  onClick={goToNext}
+                  className="flex items-center space-x-1 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors"
+                >
+                  <span>Next</span>
+                  <span>→</span>
+                </button>
               </div>
             )}
           </div>
@@ -229,167 +461,112 @@ export default function EquipmentDetailPage({
               <h2 className="text-xl font-semibold text-white mb-3">
                 Description
               </h2>
-              <div className="text-gray-300 space-y-3">
-                <p>{renderDescription(equipment.description)}</p>
+              <div className="text-gray-300 space-y-2">
+                {renderDescription(equipment.description)}
               </div>
             </div>
 
-            {/* Enhanced Manuals/Downloads Section */}
+            {/* Technical Specifications */}
+            {equipment.technicalSpecs && (
+              <div>
+                <h2 className="text-xl font-semibold text-white mb-3">
+                  Technical Specifications
+                </h2>
+                <div className="text-gray-300 space-y-2">
+                  {renderDescription(equipment.technicalSpecs)}
+                </div>
+              </div>
+            )}
+
+            {/* Manual Downloads */}
             {equipment.manuals && equipment.manuals.length > 0 && (
               <div>
                 <h2 className="text-xl font-semibold text-white mb-3">
-                  Documentation & Downloads
+                  Documentation
                 </h2>
-                <div className="space-y-3">
-                  {equipment.manuals.map((manual, index) => (
+                <div className="space-y-2">
+                  {equipment.manuals.map((manual) => (
                     <a
-                      key={manual.id || index}
+                      key={manual.id}
                       href={getStrapiImageUrl(manual.url)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-4 p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors border border-gray-700 hover:border-blue-500"
+                      className="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors"
                     >
-                      <div className="flex-shrink-0">
-                        <span className="text-blue-400 text-2xl">📄</span>
-                      </div>
-                      <div className="flex-grow">
-                        <div className="text-white font-medium mb-1">
-                          {manual.name || `Manual ${index + 1}`}
-                        </div>
-                        <div className="text-gray-400 text-sm">
-                          {manual.mime} •{' '}
-                          {Math.round((manual.size || 0) / 1024)} KB
-                        </div>
-                      </div>
-                      <div className="flex-shrink-0">
-                        <span className="text-blue-400 text-sm font-medium">
-                          Download →
-                        </span>
-                      </div>
+                      <span>📄</span>
+                      <span>{manual.name}</span>
+                      <span className="text-gray-400 text-sm">
+                        ({(manual.size / 1024 / 1024).toFixed(1)} MB)
+                      </span>
                     </a>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Call to Action */}
-            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-              <h3 className="text-lg font-semibold text-white mb-3">
-                Need This Equipment?
-              </h3>
-              <p className="text-gray-300 text-sm mb-4">
-                Our equipment specialists can provide technical details,
-                availability, and package recommendations for your event.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Link
-                  href={`/quote?equipment=${encodeURIComponent(
-                    equipment.name
-                  )}`}
-                  className="flex-1 bg-blue-600 text-white text-center px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                >
-                  Request Quote
-                </Link>
-                <Link
-                  href="/contact"
-                  className="flex-1 bg-gray-700 text-white text-center px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors font-medium"
-                >
-                  Contact Us
-                </Link>
-              </div>
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                <h4 className="text-white font-medium mb-2">
-                  Get Expert Consultation
-                </h4>
-                <p className="text-gray-300 text-sm mb-3">
-                  Our equipment specialists can provide technical details,
-                  availability, and package recommendations.
-                </p>
-                <div className="space-y-1 text-sm">
-                  <p className="text-gray-300">
-                    📧 {brandConfig.contact.email}
-                  </p>
-                  <p className="text-gray-300">📞 {brandUtils.formatPhone()}</p>
-                </div>
-              </div>
+            {/* Consultation CTA */}
+            <div className="pt-6">
+              <ConsultationCTA
+                equipment={equipment}
+                message={`I'm interested in learning more about the ${equipment.name} for my upcoming event. Could we schedule a consultation?`}
+              />
             </div>
           </div>
         </div>
 
         {/* Related Equipment */}
         {relatedEquipment.length > 0 && (
-          <section className="mt-16">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-bold text-white">
-                Related Equipment
-              </h2>
-              <Link
-                href="/equipment"
-                className="text-blue-400 hover:text-blue-300 text-sm font-medium"
-              >
-                View All Equipment →
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {relatedEquipment.map((item) => (
-                <Link
-                  key={item.id}
-                  href={`/equipment/${item.slug}`}
-                  className="bg-gray-800 rounded-lg shadow-lg hover:shadow-xl transition-all overflow-hidden border border-gray-700 hover:border-blue-500 group"
-                >
-                  <div className="h-48 bg-gray-700 relative">
-                    {item.mainImage ? (
-                      <Image
-                        src={getStrapiImageUrl(item.mainImage.url)}
-                        alt={item.mainImage.alternativeText || item.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-gray-400">
-                        <span className="text-4xl">📦</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-lg font-semibold text-white mb-1">
-                      {item.name}
-                    </h3>
-                    {item.brand && (
-                      <p className="text-gray-300 text-sm mb-2">
-                        {typeof item.brand === 'string'
-                          ? item.brand
-                          : item.brand.brandName}
-                      </p>
-                    )}
-                    <div className="flex justify-between items-center">
-                      {item.category && (
-                        <span
-                          className="px-2 py-1 rounded-full text-xs font-medium text-white"
-                          style={{
-                            backgroundColor: brandUtils.getCategoryColor(
-                              item.category.slug ||
-                                item.category.name.toLowerCase()
-                            ),
+          <div className="mt-16">
+            <h2 className="text-2xl font-bold text-white mb-8">
+              Related Equipment
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {relatedEquipment.map((item) => {
+                const mainImageUrl = item.mainImage
+                  ? getSafeImageUrl(item.mainImage)
+                  : null;
+
+                return (
+                  <Link
+                    key={item.id}
+                    href={`/equipment/${item.slug}`}
+                    className="bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-700 transition-colors"
+                  >
+                    <div className="aspect-video bg-gray-700">
+                      {mainImageUrl ? (
+                        <Image
+                          src={mainImageUrl}
+                          alt={item.mainImage?.alternativeText || item.name}
+                          width={400}
+                          height={300}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
                           }}
-                        >
-                          {item.category.name}
-                        </span>
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-gray-400">
+                          <span className="text-4xl">📦</span>
+                        </div>
                       )}
-                      <span className="text-blue-400 text-sm">
-                        View Details →
-                      </span>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-white mb-2">
+                        {item.name}
+                      </h3>
+                      {item.shortDescription && (
+                        <p className="text-gray-400 text-sm">
+                          {item.shortDescription}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
-          </section>
+          </div>
         )}
       </div>
-
-      {/* Consultation CTA */}
-      <ConsultationCTA />
     </PageLayout>
   );
 }

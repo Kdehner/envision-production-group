@@ -83,6 +83,9 @@ export interface EquipmentModel {
   publishedAt: string;
 }
 
+// Legacy alias for backwards compatibility
+export type EquipmentItem = EquipmentModel;
+
 interface StrapiResponse<T> {
   data: T;
   meta?: {
@@ -250,26 +253,28 @@ export const strapiApi = {
     console.warn(
       'getEquipmentModel(id) is deprecated. Use getEquipmentModelBySlug(slug) instead.'
     );
-
-    // Try to find the equipment by ID in the full list and return its slug
     try {
-      const allEquipment = await this.getEquipmentModels();
-      const equipment = allEquipment.find((item) => item.id === id);
-
-      if (equipment && equipment.slug) {
-        console.log(`Redirecting ID ${id} to slug: ${equipment.slug}`);
-        return this.getEquipmentModelBySlug(equipment.slug);
-      }
-
-      console.log(`No equipment found with ID: ${id}`);
-      return null;
+      const response = await api.get<StrapiResponse<EquipmentModel[]>>(
+        '/equipment-models',
+        {
+          params: {
+            populate: ['category', 'brand', 'mainImage', 'gallery', 'manuals'],
+            filters: {
+              id: id,
+              isActive: true,
+              showOnWebsite: true,
+            },
+          },
+        }
+      );
+      return response.data.data[0] || null;
     } catch (error) {
-      console.error(`Error in legacy getEquipmentModel for ID ${id}:`, error);
+      console.error('Error fetching equipment model by id:', error);
       return null;
     }
   },
 
-  // Get featured equipment models (for homepage)
+  // Get featured equipment for homepage
   async getFeaturedEquipment(): Promise<EquipmentModel[]> {
     try {
       const response = await api.get<StrapiResponse<EquipmentModel[]>>(
@@ -286,9 +291,11 @@ export const strapiApi = {
           },
         }
       );
-
-      console.log('Featured equipment response:', response.data);
-      return Array.isArray(response.data.data) ? response.data.data : [];
+      return Array.isArray(response.data.data)
+        ? response.data.data
+        : response.data.data
+        ? [response.data.data]
+        : [];
     } catch (error) {
       console.error('Error fetching featured equipment:', error);
       return [];
@@ -385,17 +392,92 @@ export const extractTextFromBlocks = (
     .join(' ')
     .trim();
 };
-export const getStrapiImageUrl = (url: string): string => {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return `${STRAPI_URL}${url}`;
+
+// ============================================================================
+// ENHANCED IMAGE UTILITY FUNCTIONS - REPLACE THE OLD ONES
+// ============================================================================
+
+// Enhanced image URL function with better error handling
+export const getStrapiImageUrl = (url: string | null | undefined): string => {
+  // Handle null, undefined, or empty string
+  if (!url || typeof url !== 'string' || url.trim() === '') {
+    console.warn('getStrapiImageUrl: Invalid or empty URL provided:', url);
+    return '';
+  }
+
+  // If already a full URL, return as-is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+
+  // Ensure URL starts with /
+  const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+
+  // Construct full URL
+  const fullUrl = `${STRAPI_URL}${cleanUrl}`;
+
+  return fullUrl;
 };
 
-// Helper function to get file URL
-export const getStrapiFileUrl = (url: string): string => {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return `${STRAPI_URL}${url}`;
+// Safe image validation function
+export const isValidImageUrl = (url: string | null | undefined): boolean => {
+  if (!url || typeof url !== 'string') return false;
+
+  // Check if it's a valid URL format
+  try {
+    new URL(url.startsWith('http') ? url : `${STRAPI_URL}${url}`);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// Enhanced file URL function
+export const getStrapiFileUrl = (url: string | null | undefined): string => {
+  if (!url || typeof url !== 'string' || url.trim() === '') {
+    console.warn('getStrapiFileUrl: Invalid or empty URL provided:', url);
+    return '';
+  }
+
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+
+  const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+  return `${STRAPI_URL}${cleanUrl}`;
+};
+
+// Safe image component props generator
+export const getSafeImageProps = (
+  image: any,
+  fallbackAlt: string = 'Equipment image'
+) => {
+  if (!image || !image.url) {
+    return null;
+  }
+
+  const url = getStrapiImageUrl(image.url);
+  if (!url) {
+    return null;
+  }
+
+  return {
+    src: url,
+    alt: image.alternativeText || fallbackAlt,
+    width: image.width || 600,
+    height: image.height || 600,
+  };
+};
+
+// Debug function to log image data
+export const debugImageData = (image: any, context: string = 'Image') => {
+  console.group(`${context} Debug Info`);
+  console.log('Raw image object:', image);
+  console.log('Image URL:', image?.url);
+  console.log('Alternative text:', image?.alternativeText);
+  console.log('Generated URL:', getStrapiImageUrl(image?.url));
+  console.log('Is valid URL:', isValidImageUrl(image?.url));
+  console.groupEnd();
 };
 
 // Consultation-focused helper

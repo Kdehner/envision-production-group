@@ -6,17 +6,12 @@ const nextConfig: NextConfig = {
 
   // Image optimization for your logo and backgrounds
   images: {
-    domains: ['192.168.0.41', 'localhost', 'epg.kevbot.app'],
+    domains: ['127.0.0.1', '192.168.0.41', 'epg.kevbot.app'],
     remotePatterns: [
       {
         protocol: 'http',
-        hostname: '192.168.0.41',
+        hostname: '127.0.0.1',
         port: '1337',
-        pathname: '/uploads/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'epg.kevbot.app',
         pathname: '/uploads/**',
       },
     ],
