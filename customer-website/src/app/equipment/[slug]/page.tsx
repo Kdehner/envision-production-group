@@ -455,14 +455,15 @@ export default function EquipmentDetailPage({
                 </p>
               )}
             </div>
-
             {/* Description */}
             <div>
               <h2 className="text-xl font-semibold text-white mb-3">
                 Description
               </h2>
               <div className="text-gray-300 space-y-2">
-                {renderDescription(equipment.description)}
+                <p className="whitespace-pre-line">
+                  {renderDescription(equipment.description)}
+                </p>
               </div>
             </div>
 
@@ -473,11 +474,12 @@ export default function EquipmentDetailPage({
                   Technical Specifications
                 </h2>
                 <div className="text-gray-300 space-y-2">
-                  {renderDescription(equipment.technicalSpecs)}
+                  <p className="whitespace-pre-line">
+                    {renderDescription(equipment.technicalSpecs)}
+                  </p>
                 </div>
               </div>
             )}
-
             {/* Manual Downloads */}
             {equipment.manuals && equipment.manuals.length > 0 && (
               <div>
@@ -503,7 +505,6 @@ export default function EquipmentDetailPage({
                 </div>
               </div>
             )}
-
             {/* Consultation CTA */}
             <div className="pt-6">
               <ConsultationCTA
