@@ -368,7 +368,7 @@ export const strapiApi = {
   },
 };
 
-// Helper function to extract text from Strapi v5 blocks
+// Enhanced helper function to properly render Strapi v5 rich text content
 export const extractTextFromBlocks = (
   blocks: Array<{
     type: string;
@@ -382,15 +382,51 @@ export const extractTextFromBlocks = (
     return '';
   }
 
-  return blocks
-    .map((block) => {
-      if (block.type === 'paragraph' && block.children) {
-        return block.children.map((child) => child.text || '').join('');
+  const processedBlocks: string[] = [];
+  let currentSection: string[] = [];
+
+  blocks.forEach((block) => {
+    if (block?.type === 'paragraph' && block?.children) {
+      const paragraphText = block.children
+        .map((child) => child?.text || '')
+        .join('');
+
+      const trimmedText = paragraphText.trim();
+
+      // Skip empty paragraphs
+      if (trimmedText === '') {
+        // If we have content in current section, push it and start new section
+        if (currentSection.length > 0) {
+          processedBlocks.push(currentSection.join('\n'));
+          currentSection = [];
+        }
+        return;
       }
-      return '';
-    })
-    .join(' ')
-    .trim();
+
+      // Check if this is a heading (ends with colon and doesn't start with dash)
+      if (trimmedText.endsWith(':') && !trimmedText.startsWith('-')) {
+        // Push current section if it exists
+        if (currentSection.length > 0) {
+          processedBlocks.push(currentSection.join('\n'));
+          currentSection = [];
+        }
+        // Add heading as its own section
+        processedBlocks.push(trimmedText);
+        return;
+      }
+
+      // Add to current section
+      currentSection.push(trimmedText);
+    }
+  });
+
+  // Don't forget the last section
+  if (currentSection.length > 0) {
+    processedBlocks.push(currentSection.join('\n'));
+  }
+
+  // Join sections with double line breaks
+  return processedBlocks.join('\n\n');
 };
 
 // ============================================================================
