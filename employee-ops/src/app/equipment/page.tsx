@@ -1,217 +1,101 @@
-// src/app/equipment/page.tsx
+// employee-ops/src/app/equipment/page.tsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { strapiAPI, EquipmentInstance } from "@/lib/api/strapi";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import {
   Search,
   Filter,
-  Download,
-  Settings,
-  RefreshCw,
   Package,
   MapPin,
-  FileText,
   Wrench,
+  FileText,
+  Eye,
+  Edit,
+  CheckSquare,
+  Square,
 } from "lucide-react";
+import { strapiAPI, EquipmentInstance } from "@/lib/api/strapi";
+import QuickActionModals from "@/components/equipment/QuickActionModals";
 
-interface EquipmentFilters {
-  status?: string;
-  category?: string;
-  brand?: string;
-  location?: string;
-  search?: string;
-}
-
-interface EquipmentPageData {
+interface EquipmentData {
   instances: EquipmentInstance[];
   pagination: {
     page: number;
-    pageCount: number;
     pageSize: number;
+    pageCount: number;
     total: number;
   };
-  categories: any[];
-  brands: any[];
 }
 
+type ModalType = "status" | "location" | "condition" | "maintenance" | null;
+
 export default function EquipmentPage() {
-  const { user, loading: authLoading } = useAuth();
-  const [data, setData] = useState<EquipmentPageData>({
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  // Data state
+  const [data, setData] = useState<EquipmentData>({
     instances: [],
-    pagination: { page: 1, pageCount: 1, pageSize: 25, total: 0 },
-    categories: [],
-    brands: [],
+    pagination: { page: 1, pageSize: 25, pageCount: 1, total: 0 },
   });
-  const [filters, setFilters] = useState<EquipmentFilters>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchDebounce, setSearchDebounce] = useState<NodeJS.Timeout | null>(
-    null
-  );
+
+  // Filter/search state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sortBy, setSortBy] = useState("sku");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  // Modal and selection state
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-  const [activeModal, setActiveModal] = useState<
-    "status" | "location" | "condition" | "maintenance" | null
-  >(null);
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
+
+  // Authentication redirect
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
 
   // Load equipment data
-  const loadEquipmentData = useCallback(
-    async (currentFilters = filters, page = 1) => {
-      if (authLoading || !user) {
-        console.log("🔄 Skipping load - auth loading or no user:", {
-          authLoading,
-          user: !!user,
-        });
-        return;
-      }
+  const loadEquipmentData = async (page = 1) => {
+    if (status !== "authenticated") return;
 
-      try {
-        setLoading(true);
-        setError(null);
-        console.log("🔄 Loading equipment data...", { currentFilters, page });
+    setLoading(true);
+    setError(null);
 
-        // Prepare API parameters
-        const params: any = {
-          page,
-          pageSize: 25,
-          sort: "createdAt:desc",
-        };
+    try {
+      const params = {
+        page,
+        pageSize: 25,
+        search: searchTerm,
+        status: statusFilter,
+        sort: `${sortBy}:${sortOrder}`,
+      };
 
-        // Add filters
-        if (currentFilters.status) {
-          params.filters = {
-            ...params.filters,
-            equipmentStatus: currentFilters.status,
-          };
-        }
-        if (currentFilters.location) {
-          params.filters = {
-            ...params.filters,
-            location: { $containsi: currentFilters.location },
-          };
-        }
-        if (currentFilters.search) {
-          params.search = currentFilters.search;
-        }
+      console.log("📦 Loading equipment with params:", params);
+      const response = await strapiAPI.getEquipmentInstances(params);
+      setData(response);
+    } catch (err: any) {
+      console.error("Equipment loading error:", err);
+      setError(err.message || "Failed to load equipment");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        console.log("📡 API params:", params);
-
-        // Try to load equipment instances first
-        console.log("📦 Fetching equipment instances...");
-
-        // Add proper populate parameters for Strapi v5
-        const equipmentParams = {
-          ...params,
-          populate: [
-            "equipmentModel",
-            "brand",
-            "equipmentModel.category",
-            "equipmentModel.mainImage",
-          ],
-        };
-
-        console.log("📡 Equipment API params with populate:", equipmentParams);
-        const instancesResult =
-          await strapiAPI.getEquipmentInstances(equipmentParams);
-        console.log("✅ Equipment instances result:", instancesResult);
-
-        // Debug: Log the first instance structure to understand the data format
-        if (instancesResult.data && instancesResult.data.length > 0) {
-          console.log(
-            "🔍 First instance structure:",
-            JSON.stringify(instancesResult.data[0], null, 2)
-          );
-        }
-
-        // Set the data even if we can't load categories/brands
-        setData({
-          instances: instancesResult.data || [],
-          pagination: instancesResult.meta?.pagination || {
-            page: 1,
-            pageCount: 1,
-            pageSize: 25,
-            total: 0,
-          },
-          categories: [],
-          brands: [],
-        });
-
-        console.log("📊 Data set successfully:", {
-          instancesCount: instancesResult.data?.length || 0,
-          total: instancesResult.meta?.pagination?.total || 0,
-        });
-      } catch (err: any) {
-        console.error("❌ Failed to load equipment data:", err);
-        console.error("❌ Error details:", {
-          message: err.message,
-          response: err.response?.data,
-          status: err.response?.status,
-        });
-        setError(err.message || "Failed to load equipment data");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [authLoading, user, filters]
-  );
-
-  // Initial load
+  // Initial load and search handling
   useEffect(() => {
-    console.log("🎯 useEffect triggered:", {
-      authLoading,
-      user: !!user,
-      userDetails: user
-        ? { id: user.id, email: user.email, role: user.role }
-        : null,
-    });
-    if (!authLoading && user) {
-      console.log("🚀 Starting initial load...");
+    if (status === "authenticated") {
       loadEquipmentData();
-    } else {
-      console.log("⏳ Waiting for auth or user...");
     }
-  }, [authLoading, user, loadEquipmentData]);
+  }, [status, searchTerm, statusFilter, sortBy, sortOrder]);
 
-  // Handle search with debouncing
-  const handleSearch = (searchTerm: string) => {
-    if (searchDebounce) {
-      clearTimeout(searchDebounce);
-    }
-
-    const newTimeout = setTimeout(() => {
-      const newFilters = { ...filters, search: searchTerm };
-      setFilters(newFilters);
-      loadEquipmentData(newFilters, 1);
-    }, 500);
-
-    setSearchDebounce(newTimeout);
-  };
-
-  // Handle filter changes
-  const handleFilterChange = (key: keyof EquipmentFilters, value: string) => {
-    const newFilters = { ...filters, [key]: value || undefined };
-    setFilters(newFilters);
-    loadEquipmentData(newFilters, 1);
-  };
-
-  // Handle pagination
-  const handlePageChange = (newPage: number) => {
-    loadEquipmentData(filters, newPage);
-  };
-
-  // Handle item selection
-  const toggleItemSelection = (id: string) => {
-    const newSelected = new Set(selectedItems);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedItems(newSelected);
-  };
-
-  const toggleSelectAll = () => {
+  // Selection handlers
+  const handleSelectAll = () => {
     if (selectedItems.size === data.instances.length) {
       setSelectedItems(new Set());
     } else {
@@ -219,500 +103,392 @@ export default function EquipmentPage() {
     }
   };
 
-  // Status badge component
-  const StatusBadge = ({ status }: { status: string }) => {
-    const getStatusColor = (status: string) => {
-      switch (status) {
-        case "Available":
-          return "bg-green-500/20 text-green-400 border-green-500/30";
-        case "Rented":
-          return "bg-blue-500/20 text-blue-400 border-blue-500/30";
-        case "Maintenance":
-          return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-        case "Damaged":
-          return "bg-red-500/20 text-red-400 border-red-500/30";
-        case "Retired":
-          return "bg-gray-500/20 text-gray-400 border-gray-500/30";
-        default:
-          return "bg-gray-500/20 text-gray-400 border-gray-500/30";
-      }
-    };
-
-    return (
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(status)}`}
-      >
-        {status}
-      </span>
-    );
+  const handleSelectItem = (id: string) => {
+    const newSelection = new Set(selectedItems);
+    if (newSelection.has(id)) {
+      newSelection.delete(id);
+    } else {
+      newSelection.add(id);
+    }
+    setSelectedItems(newSelection);
   };
 
-  if (authLoading) {
+  // Quick action handlers
+  const handleQuickActionSuccess = () => {
+    loadEquipmentData(data.pagination.page);
+    setSelectedItems(new Set());
+    setActiveModal(null);
+  };
+
+  // Pagination
+  const handlePageChange = (page: number) => {
+    loadEquipmentData(page);
+  };
+
+  // Loading and error states
+  if (status === "loading" || (status === "unauthenticated" && loading)) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-            Authentication Required
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Please sign in to access equipment management.
-          </p>
-        </div>
-      </div>
-    );
+  if (status === "unauthenticated") {
+    return null;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Equipment Management
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Track and manage individual equipment instances
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
+            Manage equipment instances, track status, and perform bulk
+            operations
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => loadEquipmentData()}
-            disabled={loading}
-            className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </button>
-
-          <button
-            onClick={async () => {
-              console.log("🧪 Testing Strapi connection...");
-              try {
-                const testResult = await strapiAPI.testConnection();
-                console.log("🧪 Connection test result:", testResult);
-                alert(
-                  `Connection test: ${testResult.success ? "SUCCESS" : "FAILED"}\nCheck console for details`
-                );
-              } catch (err) {
-                console.error("🧪 Connection test failed:", err);
-                alert("Connection test failed - check console");
-              }
-            }}
-            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
-          >
-            Test API
-          </button>
-
-          <button
-            onClick={async () => {
-              console.log("🔄 Manual equipment load triggered...");
-              await loadEquipmentData();
-            }}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          >
-            Load Equipment
-          </button>
-
-          {selectedItems.size > 0 && (
-            <div className="flex items-center gap-2">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                {selectedItems.size} selected
-              </div>
-
-              {/* Temporarily disabled quick action buttons for debugging */}
-              <span className="text-xs text-gray-500">
-                Quick actions temporarily disabled
-              </span>
-
-              {/*
-              <button
-                onClick={() => setActiveModal("status")}
-                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm"
-              >
-                <Package className="h-4 w-4" />
-                Status
-              </button>
-              
-              <button
-                onClick={() => setActiveModal("location")}
-                className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
-              >
-                <MapPin className="h-4 w-4" />
-                Location
-              </button>
-              
-              <button
-                onClick={() => setActiveModal("condition")}
-                className="px-3 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 flex items-center gap-2 text-sm"
-              >
-                <FileText className="h-4 w-4" />
-                Condition
-              </button>
-              
-              <button
-                onClick={() => setActiveModal("maintenance")}
-                className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2 text-sm"
-              >
-                <Wrench className="h-4 w-4" />
-                Maintenance
-              </button>
-              */}
-            </div>
-          )}
-
-          <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            Export
-          </button>
-        </div>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Search */}
-          <div className="lg:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Search Equipment
-            </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by SKU, serial number, or model..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                onChange={(e) => handleSearch(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Status Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Status
-            </label>
-            <select
-              value={filters.status || ""}
-              onChange={(e) => handleFilterChange("status", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">All Statuses</option>
-              <option value="Available">Available</option>
-              <option value="Rented">Rented</option>
-              <option value="Maintenance">Maintenance</option>
-              <option value="Damaged">Damaged</option>
-              <option value="Retired">Retired</option>
-            </select>
-          </div>
-
-          {/* Location Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Location
-            </label>
-            <input
-              type="text"
-              placeholder="Filter by location..."
-              value={filters.location || ""}
-              onChange={(e) => handleFilterChange("location", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-
-        {/* Active Filters Display */}
-        {(filters.status || filters.location || filters.search) && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {filters.search && (
-              <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-sm">
-                Search: "{filters.search}"
-                <button
-                  onClick={() => handleFilterChange("search", "")}
-                  className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
-                >
-                  ×
-                </button>
-              </span>
-            )}
-            {filters.status && (
-              <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full text-sm">
-                Status: {filters.status}
-                <button
-                  onClick={() => handleFilterChange("status", "")}
-                  className="ml-2 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200"
-                >
-                  ×
-                </button>
-              </span>
-            )}
-            {filters.location && (
-              <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-sm">
-                Location: {filters.location}
-                <button
-                  onClick={() => handleFilterChange("location", "")}
-                  className="ml-2 text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200"
-                >
-                  ×
-                </button>
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Results Summary */}
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          {loading
-            ? "Loading equipment..."
-            : error
-              ? `Error: ${error}`
-              : `Showing ${data.instances.length} of ${data.pagination.total} equipment instances`}
-        </p>
-
-        {data.pagination.total > 0 && (
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Page {data.pagination.page} of {data.pagination.pageCount}
-          </div>
-        )}
-      </div>
-
-      {/* Equipment Table */}
-      {loading ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8">
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          </div>
-        </div>
-      ) : error ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8">
-          <div className="text-center">
-            <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-            <button
-              onClick={() => loadEquipmentData()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      ) : data.instances.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8">
-          <div className="text-center">
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              No equipment instances found matching your criteria.
-            </p>
-            <button
-              onClick={() => {
-                setFilters({});
-                loadEquipmentData({}, 1);
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Clear Filters
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-          {/* Table Header */}
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-600 dark:text-gray-300">
-              <div className="col-span-1">
+        {/* Search and Filters */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
-                  type="checkbox"
-                  checked={
-                    selectedItems.size === data.instances.length &&
-                    data.instances.length > 0
-                  }
-                  onChange={toggleSelectAll}
-                  className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-blue-600 focus:ring-blue-500"
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by SKU, model, or location..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              <div className="col-span-2">SKU</div>
-              <div className="col-span-3">Equipment Model</div>
-              <div className="col-span-2">Status</div>
-              <div className="col-span-2">Location</div>
-              <div className="col-span-2">Actions</div>
+            </div>
+
+            {/* Status Filter */}
+            <div className="w-full lg:w-48">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">All Status</option>
+                <option value="Available">Available</option>
+                <option value="Rented">Rented</option>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Damaged">Damaged</option>
+                <option value="Retired">Retired</option>
+              </select>
+            </div>
+
+            {/* Sort Options */}
+            <div className="flex gap-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="sku">Sort by SKU</option>
+                <option value="createdAt">Date Added</option>
+                <option value="equipmentStatus">Status</option>
+                <option value="currentLocation">Location</option>
+              </select>
+              <button
+                onClick={() =>
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                }
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                {sortOrder === "asc" ? "↑" : "↓"}
+              </button>
             </div>
           </div>
+        </div>
 
-          {/* Table Body */}
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {data.instances.map((instance) => {
-              // Safety check for data structure
-              if (!instance || !instance.sku) {
-                console.warn("⚠️ Invalid instance:", instance);
-                return null;
-              }
-
-              // Data is at root level, not in attributes
-              const equipmentModel =
-                instance.equipmentModel?.data?.attributes ||
-                instance.equipmentModel;
-              const brand = instance.brand?.data?.attributes || instance.brand;
-              const category =
-                equipmentModel?.category?.data?.attributes ||
-                equipmentModel?.category;
-
-              return (
-                <div
-                  key={instance.documentId}
-                  className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+        {/* Bulk Actions Bar */}
+        {selectedItems.size > 0 && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  {selectedItems.size} item{selectedItems.size > 1 ? "s" : ""}{" "}
+                  selected
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setActiveModal("status")}
+                  className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
                 >
-                  <div className="grid grid-cols-12 gap-4 items-center">
-                    {/* Checkbox */}
-                    <div className="col-span-1">
-                      <input
-                        type="checkbox"
-                        checked={selectedItems.has(instance.documentId)}
-                        onChange={() =>
-                          toggleItemSelection(instance.documentId)
-                        }
-                        className="rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-blue-600 focus:ring-blue-500"
-                      />
-                    </div>
+                  <Package className="h-4 w-4" />
+                  Update Status
+                </button>
+                <button
+                  onClick={() => setActiveModal("location")}
+                  className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                >
+                  <MapPin className="h-4 w-4" />
+                  Change Location
+                </button>
+                <button
+                  onClick={() => setActiveModal("condition")}
+                  className="flex items-center gap-2 px-3 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm"
+                >
+                  <FileText className="h-4 w-4" />
+                  Assess Condition
+                </button>
+                <button
+                  onClick={() => setActiveModal("maintenance")}
+                  className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+                >
+                  <Wrench className="h-4 w-4" />
+                  Schedule Maintenance
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
-                    {/* SKU */}
-                    <div className="col-span-2">
-                      <div className="font-mono text-sm font-medium text-gray-900 dark:text-white">
-                        {instance.sku}
-                      </div>
-                      {instance.serialNumber && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          S/N: {instance.serialNumber}
+        {/* Equipment List */}
+        {loading ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-2 text-gray-600 dark:text-gray-400">
+                Loading equipment...
+              </span>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8">
+            <div className="text-center">
+              <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+              <button
+                onClick={() => loadEquipmentData()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            {/* Table Header */}
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center">
+                <button
+                  onClick={handleSelectAll}
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                >
+                  {selectedItems.size === data.instances.length ? (
+                    <CheckSquare className="h-4 w-4 text-blue-600" />
+                  ) : (
+                    <Square className="h-4 w-4 text-gray-400" />
+                  )}
+                </button>
+                <div className="ml-4 grid grid-cols-12 gap-4 w-full text-sm font-medium text-gray-500 dark:text-gray-400">
+                  <div className="col-span-2">SKU</div>
+                  <div className="col-span-3">Equipment Model</div>
+                  <div className="col-span-2">Status</div>
+                  <div className="col-span-2">Location</div>
+                  <div className="col-span-2">Last Updated</div>
+                  <div className="col-span-1">Actions</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Table Body */}
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {data.instances.map((instance) => {
+                const isSelected = selectedItems.has(instance.documentId);
+                const safeInstance = {
+                  ...instance,
+                  sku: instance.sku || "Unknown",
+                  equipmentStatus: instance.equipmentStatus || "Unknown",
+                  location: instance.location || "Unknown", // Use 'location' instead of 'currentLocation'
+                  updatedAt: instance.updatedAt || null,
+                };
+
+                return (
+                  <div
+                    key={instance.documentId}
+                    className={`px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                      isSelected ? "bg-blue-50 dark:bg-blue-900/20" : ""
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <button
+                        onClick={() => handleSelectItem(instance.documentId)}
+                        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <Square className="h-4 w-4 text-gray-400" />
+                        )}
+                      </button>
+                      <div className="ml-4 grid grid-cols-12 gap-4 w-full items-center">
+                        {/* SKU */}
+                        <div className="col-span-2">
+                          <div className="font-mono text-sm font-medium text-gray-900 dark:text-white">
+                            {safeInstance.sku}
+                          </div>
                         </div>
-                      )}
-                    </div>
 
-                    {/* Equipment Model */}
-                    <div className="col-span-3">
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {equipmentModel?.name || "No Model Assigned"}
-                      </div>
-                      {category?.name && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {category.name}
+                        {/* Equipment Model */}
+                        <div className="col-span-3">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {instance.equipmentModel?.name || "Unknown Model"}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {instance.brand?.brandName ||
+                              instance.equipmentModel?.brand?.brandName ||
+                              "Unknown Brand"}
+                          </div>
                         </div>
-                      )}
-                      {brand?.brandName && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          Brand: {brand.brandName}
+
+                        {/* Status */}
+                        <div className="col-span-2">
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              safeInstance.equipmentStatus === "Available"
+                                ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+                                : safeInstance.equipmentStatus === "Rented"
+                                  ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
+                                  : safeInstance.equipmentStatus ===
+                                      "Maintenance"
+                                    ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300"
+                                    : safeInstance.equipmentStatus === "Damaged"
+                                      ? "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
+                                      : "bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-300"
+                            }`}
+                          >
+                            {safeInstance.equipmentStatus}
+                          </span>
                         </div>
-                      )}
-                    </div>
 
-                    {/* Status */}
-                    <div className="col-span-2">
-                      <StatusBadge status={instance.equipmentStatus} />
-                    </div>
+                        {/* Location */}
+                        <div className="col-span-2">
+                          <div className="text-sm text-gray-900 dark:text-white">
+                            {safeInstance.location}
+                          </div>
+                        </div>
 
-                    {/* Location */}
-                    <div className="col-span-2">
-                      <div className="text-sm text-gray-900 dark:text-white">
-                        {instance.location || "Not specified"}
-                      </div>
-                    </div>
+                        {/* Last Updated */}
+                        <div className="col-span-2">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {safeInstance.updatedAt
+                              ? new Date(
+                                  safeInstance.updatedAt
+                                ).toLocaleDateString()
+                              : "Unknown"}
+                          </div>
+                        </div>
 
-                    {/* Actions */}
-                    <div className="col-span-2">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() =>
-                            (window.location.href = `/equipment/${instance.documentId}`)
-                          }
-                          className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={() => {
-                            // Temporarily disabled for debugging
-                            console.log(
-                              "Edit clicked for:",
-                              instance.documentId
-                            );
-                          }}
-                          className="px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700"
-                        >
-                          Edit
-                        </button>
+                        {/* Actions */}
+                        <div className="col-span-1">
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() =>
+                                router.push(`/equipment/${instance.documentId}`)
+                              }
+                              className="p-1 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded"
+                              title="View Details"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedItems(
+                                  new Set([instance.documentId])
+                                );
+                                setActiveModal("status");
+                              }}
+                              className="p-1 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                              title="Quick Edit"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            {/* Empty State */}
+            {data.instances.length === 0 && (
+              <div className="px-6 py-12 text-center">
+                <Package className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
+                  No equipment found
+                </h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Try adjusting your search or filter criteria.
+                </p>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Pagination */}
-      {data.pagination.pageCount > 1 && (
-        <div className="flex justify-center items-center gap-2">
-          <button
-            onClick={() => handlePageChange(data.pagination.page - 1)}
-            disabled={data.pagination.page === 1}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
-          >
-            Previous
-          </button>
+        {/* Pagination */}
+        {data.pagination.pageCount > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-6">
+            <button
+              onClick={() => handlePageChange(data.pagination.page - 1)}
+              disabled={data.pagination.page === 1}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+            >
+              Previous
+            </button>
 
-          {Array.from(
-            { length: Math.min(5, data.pagination.pageCount) },
-            (_, i) => {
-              const page = i + 1;
-              return (
-                <button
-                  key={page}
-                  onClick={() => handlePageChange(page)}
-                  className={`px-3 py-2 rounded-lg ${
-                    data.pagination.page === page
-                      ? "bg-blue-600 text-white"
-                      : "border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  }`}
-                >
-                  {page}
-                </button>
-              );
-            }
-          )}
+            {Array.from(
+              { length: Math.min(5, data.pagination.pageCount) },
+              (_, i) => {
+                const page = i + 1;
+                return (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`px-3 py-2 rounded-lg ${
+                      data.pagination.page === page
+                        ? "bg-blue-600 text-white"
+                        : "border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              }
+            )}
 
-          <button
-            onClick={() => handlePageChange(data.pagination.page + 1)}
-            disabled={data.pagination.page === data.pagination.pageCount}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      )}
+            <button
+              onClick={() => handlePageChange(data.pagination.page + 1)}
+              disabled={data.pagination.page === data.pagination.pageCount}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </div>
 
-      {/* Quick Action Modals - Temporarily disabled for debugging */}
-      {/*
+      {/* Quick Action Modals - NOW ENABLED! */}
       <QuickActionModals
         selectedItems={selectedItems}
         instances={data.instances}
         onClose={() => {
           setActiveModal(null);
-          setSelectedItems(new Set());
         }}
-        onSuccess={() => {
-          loadEquipmentData();
-          setSelectedItems(new Set());
-        }}
+        onSuccess={handleQuickActionSuccess}
         actionType={activeModal}
       />
-      */}
     </div>
   );
 }

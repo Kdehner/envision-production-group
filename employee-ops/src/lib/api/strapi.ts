@@ -1,4 +1,5 @@
-// src/lib/api/strapi.ts - Corrected to match customer website patterns
+// employee-ops/src/lib/api/strapi.ts - Updated types and API methods
+
 import axios, { AxiosInstance } from "axios";
 import { getSession } from "next-auth/react";
 
@@ -7,139 +8,41 @@ class StrapiAPI {
 
   constructor() {
     this.client = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_STRAPI_URL || "http://127.0.0.1:1337",
+      baseURL:
+        process.env.NEXT_PUBLIC_STRAPI_API_URL || "http://127.0.0.1:1337",
+      timeout: 10000,
       headers: {
         "Content-Type": "application/json",
       },
     });
 
-    // Request interceptor to add auth token
+    // Add request interceptor for authentication
     this.client.interceptors.request.use(async (config) => {
       const session = await getSession();
       if (session?.strapiToken) {
         config.headers.Authorization = `Bearer ${session.strapiToken}`;
-        console.log("🔑 API Request with token:", config.url);
-      } else {
-        console.log("⚠️ API Request without token:", config.url);
       }
       return config;
     });
-
-    // Response interceptor for error handling
-    this.client.interceptors.response.use(
-      (response) => {
-        console.log("✅ API Success:", response.config.url, response.status);
-        return response;
-      },
-      (error) => {
-        console.error(
-          "❌ API Error:",
-          error.config?.url,
-          error.response?.status,
-          error.response?.data
-        );
-
-        if (error.response?.status === 401) {
-          console.error("🚨 401 Unauthorized - Check Strapi permissions");
-          if (typeof window !== "undefined") {
-            window.location.href = "/auth/signin";
-          }
-        }
-
-        if (error.response?.status === 403) {
-          console.error(
-            "🚨 403 Forbidden - User lacks permission for this resource"
-          );
-        }
-
-        return Promise.reject(error);
-      }
-    );
   }
 
-  // Test basic connectivity using proven customer patterns
-  async testConnection() {
+  // Get equipment instances with proper typing - FIXED VERSION
+  async getEquipmentInstances(
+    params: {
+      page?: number;
+      pageSize?: number;
+      search?: string;
+      status?: string;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
+      filters?: Record<string, any>;
+      sort?: string;
+    } = {}
+  ) {
     try {
-      console.log("🧪 Testing Strapi connection...");
-      const response = await this.client.get("/api/equipment-categories", {
-        params: {
-          filters: {
-            isActive: true,
-          },
-          sort: "sortOrder:asc",
-        },
-      });
-      console.log("✅ Connection test successful");
-      return { success: true, data: response.data };
-    } catch (error: any) {
-      console.error(
-        "❌ Connection test failed:",
-        error.response?.status,
-        error.response?.data
-      );
-      return { success: false, error: error.response?.data || error.message };
-    }
-  }
+      console.log("📦 Loading equipment instances with params:", params);
 
-  // Equipment Categories using customer website patterns
-  async getCategories() {
-    try {
-      console.log("📂 Fetching equipment categories...");
-      const response = await this.client.get("/api/equipment-categories", {
-        params: {
-          filters: {
-            isActive: true,
-          },
-          sort: "sortOrder:asc",
-        },
-      });
-      console.log("✅ Categories loaded:", response.data.data?.length || 0);
-      return response.data;
-    } catch (error: any) {
-      console.error("❌ Failed to fetch categories:", error.response?.data);
-      throw error;
-    }
-  }
-
-  // Equipment Models using customer website patterns
-  async getEquipmentModels() {
-    try {
-      console.log("🏷️ Fetching equipment models...");
-      const response = await this.client.get("/api/equipment-models", {
-        params: {
-          populate: ["category", "brand", "mainImage"],
-          filters: {
-            isActive: true,
-          },
-          sort: "name:asc",
-        },
-      });
-      console.log(
-        "✅ Equipment models loaded:",
-        response.data.data?.length || 0
-      );
-      return response.data;
-    } catch (error: any) {
-      console.error(
-        "❌ Failed to fetch equipment models:",
-        error.response?.data
-      );
-      throw error;
-    }
-  }
-
-  // Equipment Instances using corrected Strapi v5 patterns
-  async getEquipmentInstances(params?: {
-    page?: number;
-    pageSize?: number;
-    filters?: Record<string, any>;
-    sort?: string;
-    search?: string;
-  }) {
-    try {
-      console.log("📦 Fetching equipment instances...");
-
-      // Build query parameters using customer website patterns
+      // Use object-based parameters like the working customer website
       const queryParams: any = {
         populate: [
           "equipmentModel",
@@ -147,26 +50,25 @@ class StrapiAPI {
           "equipmentModel.category",
           "equipmentModel.mainImage",
         ],
-        sort: params?.sort || "createdAt:desc",
+        pagination: {
+          page: params.page || 1,
+          pageSize: params.pageSize || 25,
+        },
+        filters: {
+          isActive: true,
+          ...params.filters,
+        },
+        sort: params.sort || "createdAt:desc",
       };
 
-      // Add pagination
-      if (params?.page || params?.pageSize) {
-        queryParams.pagination = {
-          page: params?.page || 1,
-          pageSize: params?.pageSize || 25,
-        };
+      // Add status filter if provided
+      if (params.status) {
+        queryParams.filters.equipmentStatus = params.status;
       }
 
-      // Add filters using Strapi v5 syntax
-      const filters: any = {
-        isActive: true,
-        ...params?.filters,
-      };
-
-      // Add search filters using $or syntax like customer website
-      if (params?.search) {
-        filters.$or = [
+      // Add search using $or syntax like customer website
+      if (params.search) {
+        queryParams.filters.$or = [
           {
             sku: {
               $containsi: params.search,
@@ -187,117 +89,187 @@ class StrapiAPI {
         ];
       }
 
-      queryParams.filters = filters;
-
+      // Use axios params object directly (like customer website)
       const response = await this.client.get("/api/equipment-instances", {
         params: queryParams,
       });
 
-      console.log(
-        "✅ Equipment instances loaded:",
-        response.data.meta?.pagination?.total || response.data.data?.length || 0
-      );
-      return response.data;
+      console.log("✅ Raw API response:", response.data);
+
+      // Transform response to match expected format
+      const instances = response.data.data.map((item: any) => ({
+        id: item.id,
+        documentId: item.documentId,
+        sku: item.sku,
+        serialNumber: item.serialNumber,
+        equipmentStatus: item.equipmentStatus,
+        location: item.location,
+        condition: item.condition,
+        notes: item.notes,
+        purchaseDate: item.purchaseDate,
+        purchasePrice: item.purchasePrice,
+        warrantyExpiration: item.warrantyExpiration,
+        lastMaintenanceDate: item.lastMaintenanceDate,
+        nextMaintenanceDate: item.nextMaintenanceDate,
+        isActive: item.isActive,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        equipmentModel: item.equipmentModel,
+        brand: item.brand,
+      }));
+
+      const result = {
+        instances,
+        pagination: response.data.meta.pagination,
+      };
+
+      console.log("✅ Equipment instances loaded:", result);
+      return result;
     } catch (error: any) {
       console.error(
-        "❌ Failed to fetch equipment instances:",
-        error.response?.data
+        "❌ Failed to load equipment instances:",
+        error.response?.data || error.message
       );
+      console.error("❌ Full error:", error);
       throw error;
     }
   }
 
-  // Get single equipment instance
+  // Get single equipment instance - FIXED VERSION
   async getEquipmentInstance(id: string) {
     try {
-      console.log(`📋 Fetching equipment instance: ${id}`);
-      const response = await this.client.get(`/api/equipment-instances/${id}`, {
-        params: {
-          populate: [
-            "equipmentModel",
-            "brand",
-            "equipmentModel.category",
-            "equipmentModel.mainImage",
-            "equipmentModel.gallery",
-          ],
-        },
-      });
-      console.log("✅ Equipment instance loaded");
-      return response.data;
-    } catch (error: any) {
-      console.error(
-        "❌ Failed to fetch equipment instance:",
-        error.response?.data
-      );
-      throw error;
-    }
-  }
+      console.log(`📦 Loading equipment instance: ${id}`);
 
-  // Brand Prefixes using customer website patterns
-  async getBrandPrefixes() {
-    try {
-      console.log("🏭 Fetching brand prefixes...");
-      const response = await this.client.get("/api/brand-prefixes", {
-        params: {
-          filters: {
-            isActive: true,
-          },
-          sort: "brandName:asc",
-        },
-      });
-      console.log("✅ Brand prefixes loaded:", response.data.data?.length || 0);
-      return response.data;
-    } catch (error: any) {
-      console.error("❌ Failed to fetch brand prefixes:", error.response?.data);
-      throw error;
-    }
-  }
-
-  // SKU Admin API - these might be custom endpoints from Phase 3
-  async getSKUStatistics() {
-    try {
-      console.log("📊 Fetching SKU statistics...");
-      const response = await this.client.get("/api/sku-admin/statistics");
-      console.log("✅ SKU statistics loaded");
-      return response.data;
-    } catch (error: any) {
-      console.error(
-        "❌ SKU statistics failed - using fallback data:",
-        error.response?.status
-      );
-      // Return fallback data if the custom API isn't available
-      return {
-        data: {
-          totalSequences: 0,
-          totalBrands: 0,
-          autoGeneration: true,
-        },
+      // Use object-based parameters like the working getEquipmentInstances method
+      const queryParams = {
+        populate: [
+          "equipmentModel",
+          "brand",
+          "equipmentModel.category",
+          "equipmentModel.mainImage",
+        ],
       };
+
+      const response = await this.client.get(`/api/equipment-instances/${id}`, {
+        params: queryParams,
+      });
+
+      console.log("✅ Raw equipment instance response:", response.data);
+
+      // Transform response - data is at root level in Strapi v5
+      const item = response.data.data;
+      const transformedInstance = {
+        id: item.id,
+        documentId: item.documentId,
+        sku: item.sku,
+        serialNumber: item.serialNumber,
+        equipmentStatus: item.equipmentStatus,
+        location: item.location,
+        condition: item.condition,
+        notes: item.notes,
+        purchaseDate: item.purchaseDate,
+        purchasePrice: item.purchasePrice,
+        warrantyExpiration: item.warrantyExpiration,
+        lastMaintenanceDate: item.lastMaintenanceDate,
+        nextMaintenanceDate: item.nextMaintenanceDate,
+        isActive: item.isActive,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        equipmentModel: item.equipmentModel,
+        brand: item.brand,
+      };
+
+      console.log("✅ Equipment instance loaded:", transformedInstance);
+      return transformedInstance;
+    } catch (error: any) {
+      console.error(
+        "❌ Failed to load equipment instance:",
+        error.response?.data || error.message
+      );
+      console.error("❌ Full error:", error);
+      throw error;
     }
   }
 
-  // Dashboard statistics with proper error handling
-  async getDashboardStats() {
+  // Update equipment instance - CORRECTED PARAMETERS
+  async updateEquipmentInstance(
+    id: string,
+    data: {
+      equipmentStatus?: string;
+      location?: string; // Changed from currentLocation to location
+      condition?: string;
+      notes?: string;
+      lastMaintenanceDate?: string;
+      nextMaintenanceDate?: string;
+      serialNumber?: string;
+      purchaseDate?: string;
+      purchasePrice?: number;
+      warrantyExpiration?: string;
+    }
+  ) {
+    try {
+      console.log(`📝 Updating equipment instance: ${id}`, data);
+      const response = await this.client.put(`/api/equipment-instances/${id}`, {
+        data,
+      });
+      console.log("✅ Equipment instance updated");
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "❌ Failed to update equipment instance:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  // Create equipment instance
+  async createEquipmentInstance(data: {
+    equipmentModel: string;
+    brand: string;
+    serialNumber?: string;
+    purchaseDate?: string;
+    location?: string;
+    condition?: string;
+    notes?: string;
+    skipAutoSKU?: boolean;
+  }) {
+    try {
+      console.log("📝 Creating equipment instance...");
+      const response = await this.client.post("/api/equipment-instances", {
+        data,
+      });
+      console.log("✅ Equipment instance created");
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "❌ Failed to create equipment instance:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  // Get dashboard statistics
+  async getDashboardStats(): Promise<DashboardStats> {
     try {
       console.log("📊 Loading dashboard statistics...");
 
-      // Test connection first
-      const connectionTest = await this.testConnection();
-      if (!connectionTest.success) {
-        throw new Error(`Strapi connection failed: ${connectionTest.error}`);
-      }
-
-      // Load data using proven patterns
-      const results = await Promise.allSettled([
-        this.getEquipmentInstances({
-          pageSize: 1,
-        }),
-        this.getEquipmentModels(),
-        this.getSKUStatistics(),
-      ]);
-
-      // Extract successful results
-      const [instancesResult, modelsResult, skuStatsResult] = results;
+      const [instancesResult, modelsResult, skuStatsResult] =
+        await Promise.allSettled([
+          this.client.get("/api/equipment-instances", {
+            params: {
+              "pagination[pageSize]": 1,
+              "fields[0]": "equipmentStatus",
+            },
+          }),
+          this.client.get("/api/equipment-models", {
+            params: {
+              "pagination[pageSize]": 1,
+            },
+          }),
+          this.client.get("/api/sku-admin/statistics"),
+        ]);
 
       const instances =
         instancesResult.status === "fulfilled"
@@ -327,13 +299,10 @@ class StrapiAPI {
             pageSize: 100,
           });
 
-          if (statusBreakdown.data) {
-            statusCounts = statusBreakdown.data.reduce(
+          if (statusBreakdown.instances) {
+            statusCounts = statusBreakdown.instances.reduce(
               (acc: Record<string, number>, item: any) => {
-                const status =
-                  item.attributes?.equipmentStatus ||
-                  item.equipmentStatus ||
-                  "Unknown";
+                const status = item.equipmentStatus || "Unknown";
                 acc[status] = (acc[status] || 0) + 1;
                 return acc;
               },
@@ -368,60 +337,6 @@ class StrapiAPI {
         statusCounts: {},
         skuStats: { totalSequences: 0, totalBrands: 0, autoGeneration: true },
       };
-    }
-  }
-
-  // Update equipment instance
-  async updateEquipmentInstance(
-    id: string,
-    data: {
-      equipmentStatus?: string;
-      location?: string;
-      condition?: string;
-      notes?: string;
-      lastMaintenanceDate?: string;
-    }
-  ) {
-    try {
-      console.log(`📝 Updating equipment instance: ${id}`);
-      const response = await this.client.put(`/api/equipment-instances/${id}`, {
-        data,
-      });
-      console.log("✅ Equipment instance updated");
-      return response.data;
-    } catch (error: any) {
-      console.error(
-        "❌ Failed to update equipment instance:",
-        error.response?.data
-      );
-      throw error;
-    }
-  }
-
-  // Create equipment instance
-  async createEquipmentInstance(data: {
-    equipmentModel: string;
-    brand: string;
-    serialNumber?: string;
-    purchaseDate?: string;
-    location?: string;
-    condition?: string;
-    notes?: string;
-    skipAutoSKU?: boolean;
-  }) {
-    try {
-      console.log("📝 Creating equipment instance...");
-      const response = await this.client.post("/api/equipment-instances", {
-        data,
-      });
-      console.log("✅ Equipment instance created");
-      return response.data;
-    } catch (error: any) {
-      console.error(
-        "❌ Failed to create equipment instance:",
-        error.response?.data
-      );
-      throw error;
     }
   }
 
@@ -491,54 +406,45 @@ class StrapiAPI {
 // Export singleton instance
 export const strapiAPI = new StrapiAPI();
 
-// Export types for equipment data (matching Strapi v5 structure)
+// CORRECTED Types for equipment data (matching actual Strapi v5 schema)
 export interface EquipmentInstance {
   id: number;
   documentId: string;
-  attributes: {
-    sku: string;
-    serialNumber?: string;
-    equipmentStatus:
-      | "Available"
-      | "Rented"
-      | "Maintenance"
-      | "Damaged"
-      | "Retired";
-    location?: string;
-    condition?: string;
-    notes?: string;
-    purchaseDate?: string;
-    lastMaintenanceDate?: string;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-    equipmentModel?: {
-      data: {
-        id: number;
-        attributes: {
-          name: string;
-          description?: any;
-          specifications?: string;
-          category?: {
-            data: {
-              attributes: {
-                name: string;
-                skuPrefix: string;
-              };
-            };
-          };
-        };
-      };
+  sku?: string;
+  serialNumber?: string;
+  equipmentStatus:
+    | "Available"
+    | "Rented"
+    | "Maintenance"
+    | "Damaged"
+    | "Retired";
+  location?: string; // Note: using 'location' to match schema
+  condition?: "Excellent" | "Good" | "Fair" | "Poor";
+  notes?: string;
+  purchaseDate?: string;
+  purchasePrice?: number;
+  warrantyExpiration?: string;
+  lastMaintenanceDate?: string;
+  nextMaintenanceDate?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  equipmentModel?: {
+    id: number;
+    documentId: string;
+    name: string;
+    modelNumber?: string;
+    category?: {
+      id: number;
+      name: string;
+      skuPrefix: string;
     };
-    brand?: {
-      data: {
-        id: number;
-        attributes: {
-          brandName: string;
-          prefix: string;
-        };
-      };
-    };
+  };
+  brand?: {
+    id: number;
+    documentId: string;
+    brandName: string;
+    prefix: string;
   };
 }
 

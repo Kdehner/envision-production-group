@@ -1,15 +1,8 @@
-// src/components/equipment/QuickActionModals.tsx
+// employee-ops/src/components/equipment/QuickActionModals.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  X,
-  Package,
-  MapPin,
-  Wrench,
-  FileText,
-  AlertTriangle,
-} from "lucide-react";
+import { useState } from "react";
+import { X, Package, MapPin, Wrench, FileText } from "lucide-react";
 import { strapiAPI, EquipmentInstance } from "@/lib/api/strapi";
 
 interface QuickActionModalsProps {
@@ -51,20 +44,36 @@ export default function QuickActionModals({
 
         // Update each selected instance
         await Promise.all(
-          selectedInstances.map((instance) =>
-            strapiAPI.updateEquipmentInstance(instance.documentId, {
+          selectedInstances.map(async (instance) => {
+            const updateData = {
               equipmentStatus: newStatus,
-              notes: reason
-                ? `Status changed to ${newStatus}: ${reason}`
-                : `Status changed to ${newStatus}`,
-            })
-          )
+            };
+
+            // Only add notes if reason is provided
+            if (reason.trim()) {
+              const existingNotes = instance.notes || "";
+              const newNote = `Status changed to ${newStatus}: ${reason}`;
+              updateData.notes = existingNotes
+                ? `${existingNotes}\n\n${newNote}`
+                : newNote;
+            }
+
+            return strapiAPI.updateEquipmentInstance(
+              instance.documentId,
+              updateData
+            );
+          })
         );
 
         onSuccess();
         onClose();
       } catch (err: any) {
-        setError(err.message || "Failed to update status");
+        console.error("Status update error:", err);
+        setError(
+          err.response?.data?.error?.message ||
+            err.message ||
+            "Failed to update status"
+        );
       } finally {
         setLoading(false);
       }
@@ -183,20 +192,36 @@ export default function QuickActionModals({
 
         // Update each selected instance
         await Promise.all(
-          selectedInstances.map((instance) =>
-            strapiAPI.updateEquipmentInstance(instance.documentId, {
-              location: newLocation.trim(),
-              notes: notes
-                ? `Location changed to ${newLocation}: ${notes}`
-                : `Location changed to ${newLocation}`,
-            })
-          )
+          selectedInstances.map(async (instance) => {
+            const updateData = {
+              location: newLocation.trim(), // Use 'location' to match schema
+            };
+
+            // Only add notes if provided
+            if (notes.trim()) {
+              const existingNotes = instance.notes || "";
+              const newNote = `Location changed to ${newLocation}: ${notes}`;
+              updateData.notes = existingNotes
+                ? `${existingNotes}\n\n${newNote}`
+                : newNote;
+            }
+
+            return strapiAPI.updateEquipmentInstance(
+              instance.documentId,
+              updateData
+            );
+          })
         );
 
         onSuccess();
         onClose();
       } catch (err: any) {
-        setError(err.message || "Failed to update location");
+        console.error("Location update error:", err);
+        setError(
+          err.response?.data?.error?.message ||
+            err.message ||
+            "Failed to update location"
+        );
       } finally {
         setLoading(false);
       }
@@ -228,26 +253,14 @@ export default function QuickActionModals({
             value={newLocation}
             onChange={(e) => setNewLocation(e.target.value)}
             placeholder="Enter location..."
-            list="locations"
+            list="common-locations"
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
-          <datalist id="locations">
+          <datalist id="common-locations">
             {commonLocations.map((location) => (
               <option key={location} value={location} />
             ))}
           </datalist>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {commonLocations.slice(0, 4).map((location) => (
-            <button
-              key={location}
-              onClick={() => setNewLocation(location)}
-              className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
-            >
-              {location}
-            </button>
-          ))}
         </div>
 
         <div>
@@ -258,7 +271,7 @@ export default function QuickActionModals({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Additional notes about the location change..."
-            rows={2}
+            rows={3}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
@@ -345,20 +358,36 @@ export default function QuickActionModals({
 
         // Update each selected instance
         await Promise.all(
-          selectedInstances.map((instance) =>
-            strapiAPI.updateEquipmentInstance(instance.documentId, {
+          selectedInstances.map(async (instance) => {
+            const updateData = {
               condition,
-              notes: notes
-                ? `Condition assessed as ${condition}: ${notes}`
-                : `Condition assessed as ${condition}`,
-            })
-          )
+            };
+
+            // Only add notes if provided
+            if (notes.trim()) {
+              const existingNotes = instance.notes || "";
+              const newNote = `Condition assessed as ${condition}: ${notes}`;
+              updateData.notes = existingNotes
+                ? `${existingNotes}\n\n${newNote}`
+                : newNote;
+            }
+
+            return strapiAPI.updateEquipmentInstance(
+              instance.documentId,
+              updateData
+            );
+          })
         );
 
         onSuccess();
         onClose();
       } catch (err: any) {
-        setError(err.message || "Failed to update condition");
+        console.error("Condition update error:", err);
+        setError(
+          err.response?.data?.error?.message ||
+            err.message ||
+            "Failed to update condition"
+        );
       } finally {
         setLoading(false);
       }
@@ -382,26 +411,27 @@ export default function QuickActionModals({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Condition Assessment *
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Equipment Condition *
           </label>
           <div className="space-y-2">
             {conditionOptions.map((option) => (
               <label
                 key={option.value}
-                className="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="flex items-start gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 <input
                   type="radio"
+                  name="condition"
                   value={option.value}
                   checked={condition === option.value}
                   onChange={(e) => setCondition(e.target.value)}
-                  className="mr-3 text-blue-600 focus:ring-blue-500"
+                  className="mt-1"
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         option.color === "green"
                           ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
                           : option.color === "blue"
@@ -506,18 +536,34 @@ export default function QuickActionModals({
 
         // Update each selected instance
         await Promise.all(
-          selectedInstances.map((instance) =>
-            strapiAPI.updateEquipmentInstance(instance.documentId, {
+          selectedInstances.map(async (instance) => {
+            const updateData = {
               lastMaintenanceDate: maintenanceDate,
-              notes: `${maintenanceType} scheduled for ${maintenanceDate}${notes ? `: ${notes}` : ""}`,
-            })
-          )
+            };
+
+            // Always add maintenance notes
+            const existingNotes = instance.notes || "";
+            const maintenanceNote = `${maintenanceType} scheduled for ${maintenanceDate}${notes.trim() ? `: ${notes}` : ""}`;
+            updateData.notes = existingNotes
+              ? `${existingNotes}\n\n${maintenanceNote}`
+              : maintenanceNote;
+
+            return strapiAPI.updateEquipmentInstance(
+              instance.documentId,
+              updateData
+            );
+          })
         );
 
         onSuccess();
         onClose();
       } catch (err: any) {
-        setError(err.message || "Failed to schedule maintenance");
+        console.error("Maintenance schedule error:", err);
+        setError(
+          err.response?.data?.error?.message ||
+            err.message ||
+            "Failed to schedule maintenance"
+        );
       } finally {
         setLoading(false);
       }
@@ -540,42 +586,40 @@ export default function QuickActionModals({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Maintenance Date *
-            </label>
-            <input
-              type="date"
-              value={maintenanceDate}
-              onChange={(e) => setMaintenanceDate(e.target.value)}
-              min={new Date().toISOString().split("T")[0]}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Maintenance Type *
-            </label>
-            <select
-              value={maintenanceType}
-              onChange={(e) => setMaintenanceType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select type...</option>
-              {maintenanceTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Maintenance Date *
+          </label>
+          <input
+            type="date"
+            value={maintenanceDate}
+            onChange={(e) => setMaintenanceDate(e.target.value)}
+            min={new Date().toISOString().split("T")[0]}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Maintenance Notes
+            Maintenance Type *
+          </label>
+          <select
+            value={maintenanceType}
+            onChange={(e) => setMaintenanceType(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">Select maintenance type...</option>
+            {maintenanceTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Additional Notes (Optional)
           </label>
           <textarea
             value={notes}
