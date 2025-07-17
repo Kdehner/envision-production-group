@@ -16,20 +16,21 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
+          // Use internal Strapi URL for API authentication
+          const strapiUrl =
+            process.env.NEXT_PUBLIC_STRAPI_URL || "http://127.0.0.1:1337";
+
           // Authenticate with Strapi
-          const response = await fetch(
-            `${process.env.NEXT_PUBLIC_STRAPI_API_URL}/api/auth/local`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                identifier: credentials.identifier,
-                password: credentials.password,
-              }),
-            }
-          );
+          const response = await fetch(`${strapiUrl}/api/auth/local`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              identifier: credentials.identifier,
+              password: credentials.password,
+            }),
+          });
 
           const data = await response.json();
 
@@ -69,7 +70,7 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-    signIn: "/login",
+    signIn: "/auth/signin", // ✅ Fixed: Use correct signin page path
   },
   session: {
     strategy: "jwt",

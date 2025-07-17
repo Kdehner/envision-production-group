@@ -1,4 +1,4 @@
-// src/app/auth/signin/page.tsx
+// employee-ops/src/app/auth/signin/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -31,10 +31,11 @@ export default function SignInPage() {
     const password = formData.get("password") as string;
 
     try {
-      const result = await signIn("strapi-credentials", {
+      const result = await signIn("credentials", {
         identifier,
         password,
         redirect: false,
+        callbackUrl,
       });
 
       if (result?.error) {
@@ -42,7 +43,25 @@ export default function SignInPage() {
       } else if (result?.ok) {
         // Force session refresh and redirect
         await getSession();
-        router.push(callbackUrl);
+
+        // Handle callback URL properly - ensure we use the same origin
+        let redirectUrl = callbackUrl;
+
+        // If callback URL has different origin, rebuild it with current origin
+        try {
+          const callbackUrlObj = new URL(callbackUrl);
+          const currentOrigin = window.location.origin;
+
+          if (callbackUrlObj.origin !== currentOrigin) {
+            // Rebuild URL with current origin but keep the path and params
+            redirectUrl = `${currentOrigin}${callbackUrlObj.pathname}${callbackUrlObj.search}${callbackUrlObj.hash}`;
+          }
+        } catch {
+          // If callbackUrl is relative, use as-is
+          redirectUrl = callbackUrl;
+        }
+
+        router.push(redirectUrl);
         router.refresh();
       }
     } catch (err) {
@@ -85,13 +104,12 @@ export default function SignInPage() {
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
-            {/* Email Field */}
             <div>
               <label
                 htmlFor="identifier"
                 className="block text-sm font-medium text-gray-300"
               >
-                Email Address
+                Email address
               </label>
               <div className="mt-1">
                 <input
@@ -100,13 +118,12 @@ export default function SignInPage() {
                   type="email"
                   autoComplete="email"
                   required
-                  className="block w-full rounded-md border-gray-600 bg-gray-700 text-white shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2"
-                  placeholder="your.email@epg.com"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-600 rounded-md placeholder-gray-400 bg-gray-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="Enter your email"
                 />
               </div>
             </div>
 
-            {/* Password Field */}
             <div>
               <label
                 htmlFor="password"
@@ -121,7 +138,7 @@ export default function SignInPage() {
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   required
-                  className="block w-full rounded-md border-gray-600 bg-gray-700 text-white shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 pr-10"
+                  className="appearance-none block w-full px-3 py-2 pr-10 border border-gray-600 rounded-md placeholder-gray-400 bg-gray-700 text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Enter your password"
                 />
                 <button
@@ -130,20 +147,19 @@ export default function SignInPage() {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-300" />
+                    <EyeSlashIcon className="h-5 w-5 text-gray-400" />
                   ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-300" />
+                    <EyeIcon className="h-5 w-5 text-gray-400" />
                   )}
                 </button>
               </div>
             </div>
 
-            {/* Sign In Button */}
             <div>
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <div className="flex items-center">
@@ -178,7 +194,7 @@ export default function SignInPage() {
               <p className="text-xs text-gray-500">
                 Looking for equipment rental?{" "}
                 <a
-                  href="http://localhost:3000"
+                  href="https://epg.kevbot.app"
                   className="font-medium text-blue-400 hover:text-blue-300"
                   target="_blank"
                   rel="noopener noreferrer"

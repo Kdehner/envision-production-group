@@ -1,3 +1,4 @@
+/* employee-ops/src/app/globals.css */
 @import "tailwindcss";
 
 :root {
@@ -23,4 +24,56 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ===================================================================== */
+/* QR CODE SYSTEM STYLES -                 */
+/* ===================================================================== */
+
+/* QR Code SVG styling */
+.qr-code-svg svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Asset tag print styles */
+@media print {
+  .asset-tag-print {
+    page-break-inside: avoid;
+    margin: 0;
+    box-shadow: none !important;
+    border: 2px solid #000 !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* QR loading animation */
+@keyframes qr-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.qr-loading {
+  animation: qr-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Mobile QR optimizations */
+@media (max-width: 768px) {
+  .mobile-qr-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .mobile-qr-action-button:active {
+    transform: scale(0.95);
+  }
 }
